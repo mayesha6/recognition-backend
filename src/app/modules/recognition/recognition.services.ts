@@ -67,6 +67,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
       templateName: "recognition",
       templateData: {
         senderName: sender.name,
+        receiverName: receiver.name,
         message,
         points,
         category,

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You've Received a Recognition!</title>
+  <style>
+    body {
+      font-family: 'Helvetica', Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+      border:1px solid #FF7321
+    }
+    .header {
+      background-color: #FF7321;
+      color: #ffffff;
+      padding: 20px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    .content {
+      padding: 20px;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .highlight {
+      color: #FF7321;
+      font-weight: bold;
+    }
+    .points {
+      background-color: #eef2ff;
+      color: #FF7321;
+      font-weight: bold;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .footer {
+      text-align: center;
+      padding: 15px;
+      font-size: 12px;
+      color: #888888;
+    }
+    .button {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 20px;
+      background-color: #FF7321;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      You've Received a Recognition!
+    </div>
+    <div class="content">
+      <p>Hi <span class="highlight"><%= receiverName %></span>,</p>
+      <p>
+        <span class="highlight"><%= senderName %></span> has recognized your amazing work!
+      </p>
+      <p>
+        <strong>Category:</strong> <%= category %><br>
+        <strong>Tone:</strong> <%= tone %><br>
+        <strong>Value:</strong> <%= value %>
+      </p>
+      <p>
+        Message:<br>
+        "<em><%= message %></em>"
+      </p>
+      <p class="points">
+        Points Received: <%= points %>
+      </p>
+      <p>
+        Keep up the great work and continue making an impact!
+      </p>
+      
+    </div>
+    <div class="footer">
+      &copy; <%= new Date().getFullYear() %> Greetely. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
