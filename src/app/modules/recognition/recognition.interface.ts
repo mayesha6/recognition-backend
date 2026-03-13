@@ -1,4 +1,4 @@
-export type RecognitionStatus = "DRAFT" | "SENT"
+export type RecognitionStatus = "FAILED" | "SENT"
 
 export interface IRecognition {
   senderEmail: string

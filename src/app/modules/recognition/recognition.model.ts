@@ -42,7 +42,7 @@ const recognitionSchema = new Schema<IRecognition>(
 
     status: {
       type: String,
-      enum: ["DRAFT", "SENT"],
+      enum: ["FAILED", "SENT"],
       default: "SENT"
     }
   },

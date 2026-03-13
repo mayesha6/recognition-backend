@@ -4,7 +4,6 @@ import { validateRequest } from "../../middlewares/validateRequest"
 import { RecognitionValidation } from "./recognition.validation"
 import { checkAuth } from "../../middlewares/checkAuth"
 
-
 const router = express.Router()
 
 router.post(

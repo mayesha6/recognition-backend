@@ -4,6 +4,7 @@ import { User } from "../user/user.model"
 import AppError from "../../errorHelpers/AppError"
 import { QueryBuilder } from "../../utils/QueryBuiler"
 import { PointsTransaction } from "../points/points.model"
+import { sendEmail } from "../../utils/sendEmail"
 
 const sendRecognition = async (senderEmail: string, payload: any) => {
 
@@ -52,12 +53,31 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     status: "SENT"
   })
 
-    await PointsTransaction.create({
+  await PointsTransaction.create({
     senderEmail,
     receiverEmail,
     points,
     type: "RECOGNITION"
   })
+
+  try {
+    await sendEmail({
+      to: receiverEmail,
+      subject: "You received a recognition!",
+      templateName: "recognition",
+      templateData: {
+        senderName: sender.name,
+        message,
+        points,
+        category,
+        tone,
+        value
+      },
+    });
+  } catch (err) {
+    recognition.status = "FAILED";
+    await recognition.save();
+  }
 
   return recognition
 }
