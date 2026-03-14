@@ -6,6 +6,7 @@ import { FileRoutes } from "../modules/fileUp/fileUp.routes"
 import { RecognitionRoutes } from "../modules/recognition/recognition.routes"
 import { PointsRoutes } from "../modules/points/points.routes"
 import { DashboardRoutes } from "../modules/dashboard/dashboard.routes"
+import { WalletRoutes } from "../modules/wallet/wallet.routes"
 
 
 export const router = Router()
@@ -34,6 +35,10 @@ const moduleRoutes = [
     {
         path: "/points",
         route: PointsRoutes
+    },
+    {
+        path: "/wallet",
+        route: WalletRoutes
     },
     {
         path: "/dashboard",
