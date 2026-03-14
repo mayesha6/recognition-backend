@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { AccountType, IAuthProvider, IsActive, IUser, Role } from "./user.interface";
+import { AccountType, Designation, IAuthProvider, IsActive, IUser, Role } from "./user.interface";
 
 
 const authProviderSchema = new Schema<IAuthProvider>({
@@ -19,6 +19,10 @@ const userSchema = new Schema<IUser>({
         enum: Object.values(Role),
         default: Role.USER
     },
+    designation: {
+        type: String,
+        enum: Object.values(Designation),
+    },
     accountType: {
         type: String,
         enum: Object.values(AccountType),
@@ -33,10 +37,6 @@ const userSchema = new Schema<IUser>({
     },
     isVerified: { type: Boolean, default: false },
     auths: [authProviderSchema],
-    pointsBalance: { 
-        type: Number, 
-        default: 100 
-    },
 }, {
     timestamps: true,
     versionKey: false

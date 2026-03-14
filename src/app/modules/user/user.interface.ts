@@ -21,6 +21,12 @@ export enum IsActive {
   INACTIVE = "INACTIVE",
   BLOCKED = "BLOCKED",
 }
+export enum Designation {
+  JUNIOR = "JUNIOR",
+  MID = "MID",
+  SENIOR = "SENIOR",
+  MANAGER = "MANAGER",
+}
 
 export interface IUser {
   _id?: Types.ObjectId;
@@ -32,8 +38,8 @@ export interface IUser {
   isActive?: IsActive;
   isVerified?: boolean;
   role: Role;
+  designation: Designation
   accountType: AccountType;
-  pointsBalance:number;
   auths: IAuthProvider[];
   createdAt?: Date;
   updatedAt?: Date;

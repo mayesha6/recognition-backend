@@ -16,6 +16,7 @@ const transporter = nodemailer.createTransport({
 })
 
 interface SendEmailOptions {
+    from?: string;
     to: string,
     subject: string;
     templateName: string;
@@ -28,6 +29,7 @@ interface SendEmailOptions {
 }
 
 export const sendEmail = async ({
+    from,
     to,
     subject,
     templateName,
@@ -35,11 +37,11 @@ export const sendEmail = async ({
     attachments
 }: SendEmailOptions) => {
     try {
-        console.log({ to, subject, templateName, templateData, attachments });
+        console.log({ from, to, subject, templateName, templateData, attachments });
         const templatePath = path.join(__dirname, `templates/${templateName}.ejs`)
         const html = await ejs.renderFile(templatePath, templateData)
         const info = await transporter.sendMail({
-            from: envVars.EMAIL_SENDER.SMTP_FROM,
+            from: `"${templateData?.senderName} via Greetely" <${envVars.EMAIL_SENDER.SMTP_FROM}>`,
             to: to,
             subject: subject,
             html: html,

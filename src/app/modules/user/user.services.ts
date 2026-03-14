@@ -12,6 +12,8 @@ import { deleteFileFromS3 } from "../../config/S3Client.config";
 import { generateOtp } from "../otp/otp.service";
 import { sendEmail } from "../../utils/sendEmail";
 import { redisClient } from "../../config/redis.config";
+import { getCurrentQuarter } from "../../utils/wallet";
+import { Wallet } from "../wallet/wallet.model";
 
 const createUser = async (payload: Partial<IUser>) => {
   const { email, password, accountType, ...rest } = payload;
@@ -43,6 +45,16 @@ const createUser = async (payload: Partial<IUser>) => {
     if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, "Failed to register user");
   }
+
+  const { quarter, year } = getCurrentQuarter()
+
+await Wallet.create({
+  user: user._id,
+  quarter,
+  year,
+  pointsAllocated: 100,
+  pointsBalance: 100
+})
   const redisKey = `otp:${email}`;
 const otp = generateOtp();
 

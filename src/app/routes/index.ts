@@ -4,7 +4,8 @@ import { AuthRoutes } from "../modules/auth/auth.routes"
 import { OtpRoutes } from "../modules/otp/otp.routes"
 import { FileRoutes } from "../modules/fileUp/fileUp.routes"
 import { RecognitionRoutes } from "../modules/recognition/recognition.routes"
-import { pointsRoutes } from "../modules/points/points.routes"
+import { PointsRoutes } from "../modules/points/points.routes"
+import { DashboardRoutes } from "../modules/dashboard/dashboard.routes"
 
 
 export const router = Router()
@@ -32,7 +33,11 @@ const moduleRoutes = [
     },
     {
         path: "/points",
-        route: pointsRoutes
+        route: PointsRoutes
+    },
+    {
+        path: "/dashboard",
+        route: DashboardRoutes
     },
 
 

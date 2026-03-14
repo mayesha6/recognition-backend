@@ -62,6 +62,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
 
   try {
     await sendEmail({
+      from: senderEmail,
       to: receiverEmail,
       subject: "You received a recognition!",
       templateName: "recognition",
