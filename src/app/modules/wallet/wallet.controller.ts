@@ -4,23 +4,23 @@ import { sendResponse } from "../../utils/sendResponse"
 import httpStatus from "http-status-codes";
 import { WalletServices } from "./wallet.services";
 
-const getWallet = catchAsync(async (req:Request, res:Response, next:NextFunction) => {
+const getWallet = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
-  const userId = req.params.userId
-  const {year, quarter} = req.body
+    const userId = req.params.userId
+    const { year, quarter } = req.body
 
-  const wallet = await WalletServices.getWallet(userId, year, quarter)
+    const wallet = await WalletServices.getWallet(userId, year, quarter)
 
-  sendResponse(res, {
+    sendResponse(res, {
 
-    success: true,
-          statusCode: httpStatus.OK,
-          message: "Wallet retrieve successfully",
-          data: wallet,
-  })
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Wallet retrieve successfully",
+        data: wallet,
+    })
 
 })
 
 export const WalletController = {
-  getWallet
+    getWallet
 };
