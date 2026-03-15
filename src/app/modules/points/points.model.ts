@@ -6,11 +6,18 @@ const pointsTransactionSchema = new Schema<IPointsTransaction>({
   receiverEmail: { type: String, required: true },
   points: { type: Number, required: true },
   description: { type: String },
-   type: {
+  type: {
     type: String,
     enum: ["RECOGNITION", "REDEEM", "ADJUSTMENT"],
     required: true,
   },
+  status: {
+    type: String,
+    enum: ["PENDING", "COMPLETED", "FAILED"],
+    default: "COMPLETED"
+  }
+
+
 }, {
   timestamps: true,
   versionKey: false

@@ -4,6 +4,7 @@ import AppError from "../../errorHelpers/AppError";
 import httpStatus from "http-status-codes";
 
 import { Wallet } from "../wallet/wallet.model";
+import { getCurrentQuarter } from "../../utils/wallet";
 
 // const createTransaction = async (data: IPointsTransaction) => {
 //   const session = await mongoose.startSession()
@@ -52,40 +53,33 @@ import { Wallet } from "../wallet/wallet.model";
 // }
 
 const getUserTransactions = async (email: string) => {
-    return await PointsTransaction.find({
-        $or: [{ senderEmail: email }, { receiverEmail: email }]
-    }).sort({ createdAt: -1 });
+  return await PointsTransaction.find({
+    $or: [{ senderEmail: email }, { receiverEmail: email }]
+  }).sort({ createdAt: -1 });
 }
 
 const getUserBalance = async (email: string) => {
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email })
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found")
 
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
-
-  const now = new Date();
-  const month = now.getMonth() + 1;
-
-  const quarter = Math.ceil(month / 3);
-  const year = now.getFullYear();
+  const { year, quarter } = getCurrentQuarter()
 
   const wallet = await Wallet.findOne({
     user: user._id,
     year,
     quarter
-  });
+  })
 
   if (!wallet) {
-    throw new AppError(httpStatus.NOT_FOUND, "Wallet not found for this quarter");
+    throw new AppError(httpStatus.NOT_FOUND, "Wallet not found")
   }
 
-  return wallet.pointsBalance;
-};
+  return wallet.pointsBalance
+}
 
 export const PointsService = {
-    // createTransaction,
-    getUserTransactions,
-    getUserBalance
+  // createTransaction,
+  getUserTransactions,
+  getUserBalance
 };

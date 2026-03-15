@@ -6,4 +6,4 @@ const router = Router();
 router.get("/:userId", WalletController.getWallet)
 
 
-export const UserRoutes = router;
+export const WalletRoutes = router;

@@ -27,6 +27,13 @@ export enum Designation {
   SENIOR = "SENIOR",
   MANAGER = "MANAGER",
 }
+export enum Department {
+  ENGINEERING = "ENGINEERING",
+  HR = "HR",
+  MARKETING = "MARKETING",
+  SALES = "SALES",
+  FINANCE = "FINANCE"
+}
 
 export interface IUser {
   _id?: Types.ObjectId;
@@ -38,6 +45,7 @@ export interface IUser {
   isActive?: IsActive;
   isVerified?: boolean;
   role: Role;
+  department: Department; 
   designation: Designation
   accountType: AccountType;
   auths: IAuthProvider[];

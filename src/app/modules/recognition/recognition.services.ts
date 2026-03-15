@@ -5,46 +5,72 @@ import AppError from "../../errorHelpers/AppError"
 import { QueryBuilder } from "../../utils/QueryBuiler"
 import { PointsTransaction } from "../points/points.model"
 import { sendEmail } from "../../utils/sendEmail"
+import { getCurrentQuarter } from "../../utils/wallet"
+import { Wallet } from "../wallet/wallet.model"
+
 
 const sendRecognition = async (senderEmail: string, payload: any) => {
 
-  const { receiverEmail, category, tone, value, points, message } = payload
+  const {
+    receiverEmail,
+    department,
+    category,
+    tone,
+    value,
+    points,
+    message
+  } = payload
 
   if (senderEmail === receiverEmail) {
-    throw new AppError(400, "You cannot send recognition to yourself")
+    throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself")
   }
 
   const sender = await User.findOne({ email: senderEmail })
-
-  if (!sender) {
-    throw new AppError(httpStatus.NOT_FOUND, "Sender not found")
-  }
+  if (!sender) throw new AppError(httpStatus.NOT_FOUND, "Sender not found")
 
   const receiver = await User.findOne({ email: receiverEmail })
+  if (!receiver) throw new AppError(httpStatus.NOT_FOUND, "Receiver not found")
 
-  if (!receiver) {
-    throw new AppError(httpStatus.NOT_FOUND, "Receiver not found")
+  const { year, quarter } = getCurrentQuarter()
+
+  const senderWallet = await Wallet.findOne({
+    user: sender._id,
+    year,
+    quarter
+  })
+
+  if (!senderWallet) {
+    throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found")
   }
 
-  if (sender.pointsBalance < points) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Not enough points"
-    )
+  if (senderWallet.pointsBalance < points) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Not enough points")
+  }
+
+  const receiverWallet = await Wallet.findOne({
+    user: receiver._id,
+    year,
+    quarter
+  })
+
+  if (!receiverWallet) {
+    throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found")
   }
 
   // deduct sender points
-  sender.pointsBalance -= points
+  senderWallet.pointsBalance -= points
+  senderWallet.pointsUsed += points
 
   // add receiver points
-  receiver.pointsBalance += points
+  receiverWallet.pointsBalance += points
 
-  await sender.save()
-  await receiver.save()
+  await senderWallet.save()
+  await receiverWallet.save()
 
   const recognition = await Recognition.create({
     senderEmail,
     receiverEmail,
+    department,
     category,
     tone,
     value,
@@ -57,10 +83,12 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     senderEmail,
     receiverEmail,
     points,
-    type: "RECOGNITION"
+    type: "RECOGNITION",
+    status: "COMPLETED"
   })
 
   try {
+
     await sendEmail({
       from: senderEmail,
       to: receiverEmail,
@@ -74,11 +102,14 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
         category,
         tone,
         value
-      },
-    });
-  } catch (err) {
-    recognition.status = "FAILED";
-    await recognition.save();
+      }
+    })
+
+  } catch {
+
+    recognition.status = "FAILED"
+    await recognition.save()
+
   }
 
   return recognition
@@ -97,7 +128,7 @@ const getRecognitionHistory = async (
   });
 
   const queryBuilder = new QueryBuilder(baseQuery, query)
-    .search(["senderEmail", "receiverEmail", "category", "message"])
+    .search(["senderEmail", "receiverEmail", "category", "message", "department"])
     .filter()
     .sort()
     .fields()

@@ -15,6 +15,12 @@ const recognitionSchema = new Schema<IRecognition>(
       index: true
     },
 
+     department: {
+      type: String,
+      required: true,
+      index: true
+    },
+    
     category: {
       type: String,
       required: true
