@@ -21,6 +21,26 @@ const getWallet = catchAsync(async (req: Request, res: Response, next: NextFunct
 
 })
 
+const distributePoints = catchAsync(async(req,res)=>{
+
+ const { designation, points } = req.body
+
+ const result =
+ await WalletServices.distributePoints(
+ designation,
+ points
+ )
+
+ sendResponse(res,{
+  success:true,
+  statusCode:httpStatus.OK,
+  message:"Points distributed",
+  data:result
+ })
+
+})
+
 export const WalletController = {
-    getWallet
+    getWallet,
+    distributePoints
 };

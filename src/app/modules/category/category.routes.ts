@@ -1,0 +1,40 @@
+import { Router } from "express"
+import { CategoryController } from "./category.controller"
+import { checkAuth } from "../../middlewares/checkAuth"
+import { upload } from "../../config/S3Client.config"
+import { FileTypes } from "../fileUp/fileUp.interface"
+
+const router = Router()
+
+router.post(
+"/create",
+checkAuth("ADMIN","SUPER_ADMIN"),
+CategoryController.createCategory
+)
+
+router.get(
+"/",
+checkAuth("ADMIN","SUPER_ADMIN","USER"),
+CategoryController.getCategories
+)
+
+router.post(
+"/:id/images",
+checkAuth("ADMIN","SUPER_ADMIN"),
+
+upload({
+ folder:"CategoryImages",
+ fileType:FileTypes.IMAGE,
+ maxCount:10
+}),
+
+CategoryController.addImages
+)
+
+router.delete(
+"/image",
+checkAuth("ADMIN","SUPER_ADMIN"),
+CategoryController.deleteImage
+)
+
+export const CategoryRoutes = router

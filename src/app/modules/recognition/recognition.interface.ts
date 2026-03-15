@@ -4,6 +4,7 @@ export interface IRecognition {
   senderEmail: string
   receiverEmail: string
 
+  image:string
   department: string
   category: string
   tone: string
