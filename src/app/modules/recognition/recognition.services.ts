@@ -117,7 +117,8 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
         points,
         category,
         tone,
-        value
+        value,
+        image
       }
     })
 

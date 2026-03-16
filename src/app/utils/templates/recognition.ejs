@@ -1,99 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You've Received a Recognition!</title>
+
+  <title>Recognition Received</title>
+
   <style>
     body {
-      font-family: 'Helvetica', Arial, sans-serif;
-      background-color: #f4f6f8;
       margin: 0;
       padding: 0;
+      background: #f5f7fb;
+      font-family: Arial, Helvetica, sans-serif;
     }
+
     .container {
       max-width: 600px;
       margin: 30px auto;
-      background-color: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      background: #ffffff;
+      border-radius: 10px;
       overflow: hidden;
-      border:1px solid #FF7321
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #eee;
     }
+
     .header {
-      background-color: #FF7321;
-      color: #ffffff;
-      padding: 20px;
+      background: #FF7321;
+      color: white;
       text-align: center;
+      padding: 25px;
       font-size: 22px;
       font-weight: bold;
     }
-    .content {
+
+    .image {
+      text-align: center;
       padding: 20px;
-      color: #333333;
-      line-height: 1.6;
     }
-    .highlight {
+
+    .image img {
+      width: 100%;
+    }
+
+    .content {
+      padding: 20px 30px;
+      color: #333;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .name {
       color: #FF7321;
       font-weight: bold;
     }
-    .points {
-      background-color: #eef2ff;
-      color: #FF7321;
-      font-weight: bold;
-      padding: 8px 12px;
-      border-radius: 6px;
+
+    .badges {
+      margin: 15px 0;
+    }
+
+    .badge {
       display: inline-block;
-      margin-top: 10px;
+      background: #f1f3f6;
+      color: #444;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      margin-right: 6px;
     }
+
+    .message-box {
+      background: #f8f9fc;
+      padding: 15px;
+      border-left: 4px solid #FF7321;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-style: italic;
+    }
+
+    .points {
+      text-align: center;
+      margin: 25px 0;
+    }
+
+    .points span {
+      background: #FF7321;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
     .footer {
       text-align: center;
-      padding: 15px;
+      padding: 20px;
       font-size: 12px;
-      color: #888888;
-    }
-    .button {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 12px 20px;
-      background-color: #FF7321;
-      color: #ffffff;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: bold;
+      color: #999;
+      border-top: 1px solid #eee;
     }
   </style>
 </head>
+
 <body>
+
   <div class="container">
+
     <div class="header">
       You've Received a Recognition!
     </div>
+
     <div class="content">
-      <p>Hi <span class="highlight"><%= receiverName %></span>,</p>
-      <!-- <p>
-        <span class="highlight"><%= senderName %></span> has recognized your amazing work!
-      </p> -->
-      <!-- <p>
-        <strong>Category:</strong> <%= category %><br>
-        <strong>Tone:</strong> <%= tone %><br>
-        <strong>Value:</strong> <%= value %>
-      </p> -->
+
       <p>
-        <!-- Message:<br> -->
+        Hi <span class="name">
+          <%= receiverName %>
+        </span>,
+      </p>
+
+      <p>
+        <span class="name">
+          <%= senderName %>
+        </span> has recognized your outstanding contribution.
+      </p>
+
+      <!-- <div class="badges">
+        <span class="badge">Category: <%= category %></span>
+        <span class="badge">Value: <%= value %></span>
+        <span class="badge">Tone: <%= tone %></span>
+      </div> -->
+
+      <div class="message-box">
         "<%= message %>"
-      </p>
-      <p class="points">
-        Points Received: <%= points %>
-      </p>
-      <p>
-        Keep up the great work and continue making an impact!
-      </p>
-      
+      </div>
+
+      <% if(image){ %>
+        <div class="image">
+          <img src="<%= image %>" alt="recognition">
+        </div>
+        <% } %>
+
+          <div class="points">
+            <span>⭐ <%= points %> Points Awarded</span>
+          </div>
+
+
+
+          <p style="text-align:center;">
+            Keep up the amazing work and continue making an impact!
+          </p>
+
     </div>
+
     <div class="footer">
-      &copy; <%= new Date().getFullYear() %> Greetely. All rights reserved.
+      © <%= new Date().getFullYear() %> Greetely. All rights reserved.
     </div>
+
   </div>
+
 </body>
+
 </html>
