@@ -3,7 +3,7 @@ import { User } from "../modules/user/user.model"
 import { Wallet } from "../modules/wallet/wallet.model"
 
 export const walletPoints = async () => {
-  cron.schedule("0 0 1 */3 *", async () => {  // 5 মিনিট interval
+  cron.schedule("0 0 1 */3 *", async () => {
     console.log("Running wallet reset/create cycle...")
 
     const users = await User.find()
