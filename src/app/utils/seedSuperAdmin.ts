@@ -1,12 +1,14 @@
 import bcryptjs from "bcryptjs";
 import { envVars } from "../config/env";
-import { AccountType, IAuthProvider, IUser, Role } from "../modules/user/user.interface";
+import { AccountType, Department, Designation, IAuthProvider, IUser, Role } from "../modules/user/user.interface";
 import { User } from "../modules/user/user.model";
+import { Wallet } from "../modules/wallet/wallet.model";
+import { getCurrentQuarter } from "./wallet";
 
 export const seedSuperAdmin = async () => {
     try {
         const isSuperAdminExist = await User.findOne({ email: envVars.SUPER_ADMIN_EMAIL })
-
+        const { quarter, year } = getCurrentQuarter()
         if (isSuperAdminExist) {
             console.log("Super Admin Already Exists!");
             return;
@@ -27,13 +29,24 @@ export const seedSuperAdmin = async () => {
             email: envVars.SUPER_ADMIN_EMAIL,
             password: hashedPassword,
             isVerified: true,
-            auths: [authProvider],            
+            auths: [authProvider],
             accountType: AccountType.ORGANIZATION,
-            pointsBalance:1000
+            designation: Designation.ADMIN,
+            department: Department.ADMIN
+
             // lastLogin?: Date
         }
 
         const superadmin = await User.create(payload)
+        if (superadmin) {
+            await Wallet.create({
+                user: superadmin._id,
+                quarter,
+                year,
+                pointsAllocated: 1000,
+                pointsBalance: 1000
+            })
+        }
         console.log("Super Admin Created Successfuly! \n");
         console.log(superadmin);
     } catch (error) {

@@ -26,13 +26,15 @@ export enum Designation {
   MID = "MID",
   SENIOR = "SENIOR",
   MANAGER = "MANAGER",
+  ADMIN = "ADMIN"
 }
 export enum Department {
   ENGINEERING = "ENGINEERING",
   HR = "HR",
   MARKETING = "MARKETING",
   SALES = "SALES",
-  FINANCE = "FINANCE"
+  FINANCE = "FINANCE",
+  ADMIN = "ADMIN"
 }
 
 export interface IUser {
