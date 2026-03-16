@@ -14,46 +14,46 @@ const getWallet = async (userId: string, year: number, quarter: number) => {
 }
 
 const distributePoints = async (
- designation: string,
- points: number
+  designation: string,
+  points: number
 ) => {
 
- const users = await User.find({ designation })
+  const users = await User.find({ designation })
 
- const { year, quarter } = getCurrentQuarter()
+  const { year, quarter } = getCurrentQuarter()
 
- for (const user of users) {
+  for (const user of users) {
 
-  let wallet = await Wallet.findOne({
-   user:user._id,
-   year,
-   quarter
-  })
+    let wallet = await Wallet.findOne({
+      user: user._id,
+      year,
+      quarter
+    })
 
-  if(!wallet){
+    if (!wallet) {
 
-   wallet = await Wallet.create({
-    user:user._id,
-    year,
-    quarter,
-    pointsAllocated:points,
-    pointsBalance:points
-   })
+      wallet = await Wallet.create({
+        user: user._id,
+        year,
+        quarter,
+        pointsAllocated: points,
+        pointsBalance: points
+      })
 
-  }else{
+    } else {
 
-   wallet.pointsAllocated += points
-   wallet.pointsBalance += points
+      wallet.pointsAllocated += points
+      wallet.pointsBalance += points
 
-   await wallet.save()
+      await wallet.save()
+    }
+
   }
 
- }
-
- return true
+  return true
 }
 
 export const WalletServices = {
-    getWallet,
-    distributePoints
+  getWallet,
+  distributePoints
 };
