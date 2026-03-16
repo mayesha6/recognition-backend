@@ -15,7 +15,7 @@ const startServer = async () => {
 
         console.log("Connected to DB!!");
 
-        server = app.listen(Number(envVars.PORT), envVars.IP_ADDRESS , () => {
+        server = app.listen(Number(envVars.PORT), () => {
             console.log(`Server is listening to port ${envVars.PORT}`);
         });
     } catch (error) {
