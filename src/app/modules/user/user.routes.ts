@@ -40,8 +40,16 @@ router.patch(
   checkAuth(...Object.values(Role)),
   UserControllers.updateUser
 );
-router.delete("/:id", UserControllers.deleteUserById);
-router.delete("/", UserControllers.deleteAllUsers);
+router.delete(
+  "/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  UserControllers.deleteUserById
+);
+router.delete(
+  "/",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  UserControllers.deleteAllUsers
+);
 
 
 export const UserRoutes = router;
