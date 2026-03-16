@@ -41,7 +41,7 @@ router.patch(
 );
 router.delete(
   "/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  // checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   UserControllers.deleteUserById
 );
 router.delete(
