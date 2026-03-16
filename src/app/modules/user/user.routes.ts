@@ -4,7 +4,6 @@ import { validateRequest } from "../../middlewares/validateRequest";
 import { UserControllers } from "./user.controller";
 import { Role } from "./user.interface";
 import { updateUserZodSchema } from "./user.validation";
-import { multerUpload } from "../../config/multer.config";
 import { parseFormDataMiddleware } from "../../middlewares/parseFormDataMiddleware";
 import { upload } from "../../config/S3Client.config";
 import { FileTypes } from "../fileUp/fileUp.interface";
