@@ -7,6 +7,7 @@ import { PointsTransaction } from "../points/points.model"
 import { sendEmail } from "../../utils/sendEmail"
 import { getCurrentQuarter } from "../../utils/wallet"
 import { Wallet } from "../wallet/wallet.model"
+import { Category } from "../category/category.model"
 
 
 const sendRecognition = async (senderEmail: string, payload: any) => {
@@ -18,8 +19,22 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     tone,
     value,
     points,
-    message
+    message,
+    image
   } = payload
+
+  const categoryData = await Category.findOne({ name: category })
+
+  if (!categoryData) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found")
+  }
+
+  if (!categoryData.images.includes(image)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Selected image is not valid for this category"
+    )
+  }
 
   if (senderEmail === receiverEmail) {
     throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself")
@@ -76,6 +91,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     value,
     points,
     message,
+    image,
     status: "SENT"
   })
 

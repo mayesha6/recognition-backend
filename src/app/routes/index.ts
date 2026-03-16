@@ -7,6 +7,7 @@ import { RecognitionRoutes } from "../modules/recognition/recognition.routes"
 import { PointsRoutes } from "../modules/points/points.routes"
 import { DashboardRoutes } from "../modules/dashboard/dashboard.routes"
 import { WalletRoutes } from "../modules/wallet/wallet.routes"
+import { CategoryRoutes } from "../modules/category/category.routes"
 
 
 export const router = Router()
@@ -43,6 +44,10 @@ const moduleRoutes = [
     {
         path: "/dashboard",
         route: DashboardRoutes
+    },
+    {
+        path: "/category",
+        route: CategoryRoutes
     },
 
 

@@ -2,7 +2,9 @@ import { z } from "zod"
 
 const sendRecognitionValidation = z.object({
   receiverEmail: z.string().email(),
-
+  image: z.string({
+    message: "Image is required"
+  }),
   department: z.string({
     message: "Department is required"
   }),
@@ -17,9 +19,7 @@ const sendRecognitionValidation = z.object({
   value: z.string({
     message: "Value is required"
   }),
-
   points: z.number().min(1),
-
   message: z.string({
     message: "Message is required"
   })
