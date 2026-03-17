@@ -1,5 +1,7 @@
 import { Schema, model } from "mongoose"
-import { IRecognition, RecognitionValues } from "./recognition.interface"
+import { IRecognition, RecognitionStatus, RecognitionValues, Tone } from "./recognition.interface"
+import { Department } from "../user/user.interface"
+import { Category } from "../category/category.model"
 
 const recognitionSchema = new Schema<IRecognition>(
   {
@@ -22,17 +24,19 @@ const recognitionSchema = new Schema<IRecognition>(
 
     department: {
       type: String,
+      enum: Object.values(Department),
       required: true,
-      index: true
     },
 
     category: {
       type: String,
+      enum: Object.values(Category),
       required: true
     },
 
     tone: {
       type: String,
+      enum: Object.values(Tone),
       required: true
     },
 
@@ -54,8 +58,8 @@ const recognitionSchema = new Schema<IRecognition>(
 
     status: {
       type: String,
-      enum: ["FAILED", "SENT"],
-      default: "SENT"
+      enum: Object.values(RecognitionStatus),
+      default: RecognitionStatus.SENT
     }
   },
   {
