@@ -17,6 +17,25 @@ const getDashboard = catchAsync(async (req: Request, res: Response) => {
 
 })
 
+const getReports = catchAsync(async (req, res) => {
+
+  const { startDate, endDate, department } = req.query
+
+  const result = await DashboardServices.getReports({
+    startDate,
+    endDate,
+    department
+  })
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Reports fetched",
+    data: result
+  })
+})
+
 export const DashboardController = {
-  getDashboard
+  getDashboard,
+  getReports
 }

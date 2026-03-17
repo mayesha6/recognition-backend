@@ -87,6 +87,93 @@ const getDashboard = async () => {
   }
 }
 
+const getReports = async (filters: any) => {
+
+  const { startDate, endDate, department } = filters
+
+  const matchStage: any = {}
+
+  if (department) {
+    matchStage.department = department
+  }
+
+  if (startDate && endDate) {
+    matchStage.createdAt = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate)
+    }
+  }
+
+  // 🔥 Department chart
+  const departmentData = await Recognition.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: "$department",
+        total: { $sum: 1 }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        department: "$_id",
+        total: 1
+      }
+    }
+  ])
+
+  // 🔥 Value pie chart
+  const totalCount = await Recognition.countDocuments(matchStage)
+
+  const valueData = await Recognition.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: "$value",
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        value: "$_id",
+        percent: {
+          $multiply: [
+            { $divide: ["$count", totalCount || 1] },
+            100
+          ]
+        }
+      }
+    }
+  ])
+
+  // 🔥 Line chart
+  const trendData = await Recognition.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        totalPoints: { $sum: "$points" }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        month: "$_id",
+        totalPoints: 1
+      }
+    },
+    { $sort: { month: 1 } }
+  ])
+
+  return {
+    departmentData,
+    valueData,
+    trendData
+  }
+}
+
 export const DashboardServices = {
-  getDashboard
+  getDashboard,
+  getReports
 }

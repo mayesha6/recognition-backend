@@ -37,7 +37,7 @@ const moduleRoutes = [
         route: WalletRoutes
     },
     {
-        path: "/dashboard",
+        path: "/admin",
         route: DashboardRoutes
     },
     {
