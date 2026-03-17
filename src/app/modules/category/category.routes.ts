@@ -6,34 +6,34 @@ import { FileTypes, upload } from "../../config/S3Client.config"
 const router = Router()
 
 router.post(
-"/create",
-checkAuth("ADMIN","SUPER_ADMIN"),
-CategoryController.createCategory
+    "/create",
+    checkAuth("ADMIN", "SUPER_ADMIN"),
+    CategoryController.createCategory
 )
 
 router.get(
-"/",
-checkAuth("ADMIN","SUPER_ADMIN","USER"),
-CategoryController.getCategories
+    "/",
+    checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
+    CategoryController.getCategories
 )
 
 router.post(
-"/:id/images",
-checkAuth("ADMIN","SUPER_ADMIN"),
+    "/:id/images",
+    checkAuth("ADMIN", "SUPER_ADMIN"),
 
-upload({
- folder:"CategoryImages",
- fileType:FileTypes.IMAGE,
- maxCount:10
-}),
+    upload({
+        folder: "CategoryImages",
+        fileType: FileTypes.IMAGE,
+        maxCount: 10
+    }),
 
-CategoryController.addImages
+    CategoryController.addImages
 )
 
 router.delete(
-"/image",
-checkAuth("ADMIN","SUPER_ADMIN"),
-CategoryController.deleteImage
+    "/image",
+    checkAuth("ADMIN", "SUPER_ADMIN"),
+    CategoryController.deleteImage
 )
 
 export const CategoryRoutes = router

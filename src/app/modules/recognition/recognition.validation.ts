@@ -1,6 +1,7 @@
 import { z } from "zod"
-import { Category, RecognitionValues, Tone } from "./recognition.interface"
+import { RecognitionValues, Tone } from "./recognition.interface"
 import { Department } from "../user/user.interface"
+import { CategoryName } from "../category/category.interface"
 
 const sendRecognitionValidation = z.object({
   receiverEmail: z.string().email(),
@@ -8,7 +9,7 @@ const sendRecognitionValidation = z.object({
     message: "Image is required"
   }),
   department: z.enum(Object.values(Department) as [string, ...string[]]).optional(),
-  category: z.enum(Object.values(Category) as [string, ...string[]]),
+  category: z.enum(Object.values(CategoryName) as [string, ...string[]]),
 
   tone: z.enum(Object.values(Tone) as [string, ...string[]]),
 

@@ -1,9 +1,10 @@
 import { Schema, model } from "mongoose"
-import { ICategory } from "./category.interface"
+import { CategoryName, ICategory } from "./category.interface"
 
 const categorySchema = new Schema<ICategory>({
   name: {
     type: String,
+    enum: Object.values(CategoryName),
     required: true,
     unique: true
   },

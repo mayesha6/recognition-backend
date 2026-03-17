@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose"
 import { IRecognition, RecognitionStatus, RecognitionValues, Tone } from "./recognition.interface"
 import { Department } from "../user/user.interface"
-import { Category } from "../category/category.model"
+import { CategoryName } from "../category/category.interface"
 
 const recognitionSchema = new Schema<IRecognition>(
   {
@@ -30,7 +30,7 @@ const recognitionSchema = new Schema<IRecognition>(
 
     category: {
       type: String,
-      enum: Object.values(Category),
+      enum: Object.values(CategoryName),
       required: true
     },
 
