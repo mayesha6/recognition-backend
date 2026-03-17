@@ -8,6 +8,7 @@ import { sendEmail } from "../../utils/sendEmail"
 import { getCurrentQuarter } from "../../utils/wallet"
 import { Wallet } from "../wallet/wallet.model"
 import { Category } from "../category/category.model"
+import { RecognitionStatus } from "./recognition.interface"
 
 
 const sendRecognition = async (senderEmail: string, payload: any) => {
@@ -92,7 +93,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     points,
     message,
     image,
-    status: "SENT"
+    status: RecognitionStatus.SENT
   })
 
   await PointsTransaction.create({
@@ -124,7 +125,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
 
   } catch {
 
-    recognition.status = "FAILED"
+    recognition.status = RecognitionStatus.FAILED
     await recognition.save()
 
   }

@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose"
-import { IRecognition } from "./recognition.interface"
+import { IRecognition, RecognitionValues } from "./recognition.interface"
 
 const recognitionSchema = new Schema<IRecognition>(
   {
@@ -38,6 +38,7 @@ const recognitionSchema = new Schema<IRecognition>(
 
     value: {
       type: String,
+      enum: Object.values(RecognitionValues),
       required: true
     },
 

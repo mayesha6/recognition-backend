@@ -31,7 +31,7 @@ export const seedSuperAdmin = async () => {
             isVerified: true,
             auths: [authProvider],
             accountType: AccountType.ORGANIZATION,
-            department: Department.ADMIN
+            department: Department.ADMINISTRATION
 
             // lastLogin?: Date
         }
