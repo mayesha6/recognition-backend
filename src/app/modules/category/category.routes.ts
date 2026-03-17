@@ -1,8 +1,7 @@
 import { Router } from "express"
 import { CategoryController } from "./category.controller"
 import { checkAuth } from "../../middlewares/checkAuth"
-import { upload } from "../../config/S3Client.config"
-import { FileTypes } from "../fileUp/fileUp.interface"
+import { FileTypes, upload } from "../../config/S3Client.config"
 
 const router = Router()
 

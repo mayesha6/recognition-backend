@@ -21,13 +21,6 @@ export enum IsActive {
   INACTIVE = "INACTIVE",
   BLOCKED = "BLOCKED",
 }
-export enum Designation {
-  JUNIOR = "JUNIOR",
-  MID = "MID",
-  SENIOR = "SENIOR",
-  MANAGER = "MANAGER",
-  ADMIN = "ADMIN"
-}
 export enum Department {
   ENGINEERING = "ENGINEERING",
   HR = "HR",
@@ -48,7 +41,6 @@ export interface IUser {
   isVerified?: boolean;
   role: Role;
   department: Department; 
-  designation: Designation
   accountType: AccountType;
   auths: IAuthProvider[];
   createdAt?: Date;

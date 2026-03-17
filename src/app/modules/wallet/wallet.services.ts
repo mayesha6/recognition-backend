@@ -14,11 +14,11 @@ const getWallet = async (userId: string, year: number, quarter: number) => {
 }
 
 const distributePoints = async (
-  designation: string,
+  department: string,
   points: number
 ) => {
 
-  const users = await User.find({ designation })
+  const users = await User.find({ department })
 
   const { year, quarter } = getCurrentQuarter()
 
