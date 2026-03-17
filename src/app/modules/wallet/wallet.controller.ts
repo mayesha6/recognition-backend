@@ -28,7 +28,7 @@ const distributePoints = catchAsync(async (req: Request, res: Response, next: Ne
     const { department, points } = req.body
 
     if (!Object.values(Department).includes(department)) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Invalid designation")
+        throw new AppError(httpStatus.BAD_REQUEST, "Invalid department")
     }
 
     const result =
