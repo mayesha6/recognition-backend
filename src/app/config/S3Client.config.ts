@@ -3,7 +3,6 @@ import { envVars } from "./env"
 import multer from "multer";
 import multerS3 from "multer-s3";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { FileType } from "../modules/fileUp/fileUp.interface";
 
 export const s3Client = new S3Client({
   region: envVars.S3.S3_REGION,
@@ -85,3 +84,11 @@ export const deleteFileFromS3 = async (key: string) => {
   }
 };
 
+export type FileType = "image" | "video" | "pdf" | "any" | "audio";
+
+export enum FileTypes {
+  IMAGE = "image",
+  VIDEO = "video",
+  PDF = "pdf",
+  AUDIO = "audio",
+}

@@ -2,7 +2,6 @@ import { Router } from "express"
 import { UserRoutes } from "../modules/user/user.routes"
 import { AuthRoutes } from "../modules/auth/auth.routes"
 import { OtpRoutes } from "../modules/otp/otp.routes"
-import { FileRoutes } from "../modules/fileUp/fileUp.routes"
 import { RecognitionRoutes } from "../modules/recognition/recognition.routes"
 import { PointsRoutes } from "../modules/points/points.routes"
 import { DashboardRoutes } from "../modules/dashboard/dashboard.routes"
@@ -24,10 +23,6 @@ const moduleRoutes = [
     {
         path: "/user",
         route: UserRoutes
-    },
-    {
-        path: "/file",
-        route: FileRoutes
     },
     {
         path: "/recognition",
