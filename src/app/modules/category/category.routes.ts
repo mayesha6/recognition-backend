@@ -30,6 +30,19 @@ router.post(
     CategoryController.addImages
 )
 
+
+
+router.patch(
+    "/update-category/:id",
+    checkAuth("ADMIN", "SUPER_ADMIN"),
+    CategoryController.updateCategory
+)
+router.delete(
+    "/delete-category/:id",
+    checkAuth("ADMIN", "SUPER_ADMIN"),
+    CategoryController.deleteCategory
+)
+
 router.delete(
     "/image",
     checkAuth("ADMIN", "SUPER_ADMIN"),

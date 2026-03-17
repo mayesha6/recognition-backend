@@ -1,62 +1,80 @@
-import { Category } from "./category.model"
+import httpStatus from "http-status-codes";
+import { Category } from "./category.model";
+import AppError from "../../errorHelpers/AppError";
 
 const createCategory = async (payload: any) => {
-
-    const category = await Category.create(payload)
-
-    return category
-
-}
+  const category = await Category.create(payload);
+  return category;
+};
 
 const getCategories = async () => {
+  return await Category.find();
+};
 
-    return await Category.find()
+const updateCategory = async (id: string, payload: any) => {
+  const category = await Category.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  });
 
-}
+  if (!category) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
 
-const addImages = async (
-    categoryId: string,
-    images: string[]
-) => {
+  return category;
+};
 
-    const category = await Category.findByIdAndUpdate(
-        categoryId,
-        {
-            $push: {
-                images: { $each: images }
-            }
-        },
-        { new: true }
-    )
+const deleteCategory = async (id: string) => {
+  const category = await Category.findByIdAndDelete(id);
 
-    return category
+  if (!category) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
 
-}
+  return category;
+};
 
-const deleteImage = async (
-    categoryId: string,
-    imageUrl: string
-) => {
+const addImages = async (categoryId: string, images: string[]) => {
+  const category = await Category.findByIdAndUpdate(
+    categoryId,
+    {
+      $push: {
+        images: { $each: images },
+      },
+    },
+    { new: true }
+  );
 
-    const category = await Category.findByIdAndUpdate(
-        categoryId,
-        {
-            $pull: {
-                images: imageUrl
-            }
-        },
-        { new: true }
-    )
+  if (!category) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
 
-    return category
+  return category;
+};
 
-}
+const deleteImage = async (categoryId: string, imageUrl: string) => {
+  const category = await Category.findByIdAndUpdate(
+    categoryId,
+    {
+      $pull: {
+        images: imageUrl,
+      },
+    },
+    { new: true }
+  );
+
+  if (!category) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
+
+  return category;
+};
 
 export const CategoryService = {
-
-    createCategory,
-    getCategories,
-    addImages,
-    deleteImage
-
-}
+  createCategory,
+  getCategories,
+  updateCategory,
+  deleteCategory,
+  addImages,
+  deleteImage,
+};
