@@ -1,0 +1,784 @@
+{
+  "info": {
+    "_postman_id": "a9ebc243-0da2-453e-8bc1-f46d925bdd4f",
+    "name": "Messunmarcus",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "41610617",
+    "_collection_link": "https://go.postman.co/collection/41610617-a9ebc243-0da2-453e-8bc1-f46d925bdd4f?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Register",
+          "item": [
+            {
+              "name": "Register",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\": \"Soumy Rahman\",\r\n    \"email\": \"soumyrhmn234@gmail.com\",\r\n    \"password\": \"Password@123\",\r\n    \"address\": \"Dhaka, Bangladesh\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/user/register",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "user",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Resend OTP",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \r\n    \"email\": \"soumyrhmn234@gmail.com\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/otp/resend-otp",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "otp",
+                    "resend-otp"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Verify OTP",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \r\n    \"email\": \"soumyrhmn234@gmail.com\",\r\n    \"otp\": 766158\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url}}/otp/verify-signup-otp",
+                  "host": [
+                    "{{url}}"
+                  ],
+                  "path": [
+                    "otp",
+                    "verify-signup-otp"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Get All Users",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//     \"email\": \"super@gmail.com\",\r\n//     \"password\": \"12345678\"\r\n// }\r\n\r\n{\r\n    \"email\": \"soumyrhmn234@gmail.com\",\r\n    \"password\": \"123456\"\r\n}"
+            },
+            "url": {
+              "raw": "{{url}}/user/all-users",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "user",
+                "all-users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Me",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//     \"email\": \"super@gmail.com\",\r\n//     \"password\": \"12345678\"\r\n// }\r\n\r\n{\r\n    \"email\": \"soumyrhmn234@gmail.com\",\r\n    \"password\": \"123456\"\r\n}"
+            },
+            "url": {
+              "raw": "{{url}}/user/me",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "user",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//     \"email\": \"super@gmail.com\",\r\n//     \"password\": \"12345678\"\r\n// }\r\n\r\n{\r\n    \"email\": \"soumyrhmn234@gmail.com\",\r\n    \"password\": \"123456\"\r\n}"
+            },
+            "url": {
+              "raw": "{{url}}/user/239d4939-6a73-42f2-8855-26ef57d90b8f",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "user",
+                "239d4939-6a73-42f2-8855-26ef57d90b8f"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"Mayesha\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/user/update-my-profile",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "user",
+                "update-my-profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile By ID",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"Mayesha\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/user/239d4939-6a73-42f2-8855-26ef57d90b8f",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "user",
+                "239d4939-6a73-42f2-8855-26ef57d90b8f"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User Profile By ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"Mayesha\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/user/69b23b2945112bcdb29abc78",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "user",
+                "69b23b2945112bcdb29abc78"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//     \"email\": \"super@gmail.com\",\r\n//     \"password\": \"12345678\"\r\n// }\r\n\r\n// {\r\n//     \"email\": \"soumyrhmn234@gmail.com\",\r\n//     \"password\": \"123456\"\r\n// }\r\n\r\n// {\r\n//     \"email\": \"19203203029@cse.bubt.edu.bd\",\r\n//     \"password\": \"123456\"\r\n// }\r\n{\r\n    \"email\": \"f2ozukukca@ozsaip.com\",\r\n    \"password\": \"123456\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/login",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//     \"email\": \"super@gmail.com\",\r\n//     \"password\": \"12345678\"\r\n// }\r\n\r\n{\r\n    \"email\": \"soumyrhmn234@gmail.com\",\r\n    \"password\": \"123456\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/logout",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"oldPassword\":\"Password@123\",\r\n    \"newPassword\":\"123456\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/change-password",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forget Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"soumyrhmn234@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/forgot-password",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password Using OTP",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\":\"soumyrhmn234@gmail.com\",\r\n    \"otp\":\"368741\",\r\n    \"newPassword\": \"1234567\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/reset-password",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"password\": \"1234567\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/auth/set-password",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "set-password"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recognition",
+      "item": [
+        {
+          "name": "Send Recognition",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"receiverEmail\": \"chf4zemr6a@mrotzis.com\",\r\n  \"department\": \"Engineering\",\r\n  \"category\": \"Thank You\",\r\n  \"tone\": \"Professional\",\r\n  \"value\": \"Collaboration\",\r\n  \"image\": \"https://getyourwatch-assets-prod.s3.eu-north-1.amazonaws.com/CategoryImages/1773567846397-tx1.png\",\r\n  \"points\": 10,\r\n  \"message\": \"Great teamwork on the project!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/recognition/send",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "recognition",
+                "send"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recognition History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/recognition/history",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "recognition",
+                "history"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Points",
+      "item": [
+        {
+          "name": "Get Point Transaction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/points/transactions/super@gmail.com",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "points",
+                "transactions",
+                "super@gmail.com"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Point",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/points/balance/super@gmail.com",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "points",
+                "balance",
+                "super@gmail.com"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "My Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/points/balance/super@gmail.com",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "points",
+                "balance",
+                "super@gmail.com"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/admin/dashboard",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/admin/dashboard",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Thank You\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/category/create",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "category",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Image in Category",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Thank You\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/category/create",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "category",
+                "create"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Thank You\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/category",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "category"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"EMPLOYEE_ACCOMPLISHMENTS\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/category/update-category/69b67ebce7d68095e103840b",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "category",
+                "update-category",
+                "69b67ebce7d68095e103840b"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"EMPLOYEE_ACCOMPLISHMENTS\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/category/delete-category/69b67ebce7d68095e103840b",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "category",
+                "delete-category",
+                "69b67ebce7d68095e103840b"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Wallet",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"year\": 2026,\r\n  \"quarter\": 1\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/wallet/69b5287645c1ae956ebd1527",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "wallet",
+                "69b5287645c1ae956ebd1527"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Distribute Points",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \r\n    \"department\": \"SALES\", \r\n    \"points\": 100\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}/wallet/distribute",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "wallet",
+                "distribute"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

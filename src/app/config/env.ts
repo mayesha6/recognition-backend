@@ -35,13 +35,14 @@ interface EnvConfig {
   REDIS_PORT: string;
   REDIS_USERNAME: string;
   REDIS_PASSWORD: string;
-  S3:{
+  S3: {
     S3_ACCESS_KEY: string;
     S3_SECRET_KEY: string;
     S3_REGION: string;
     S3_BUCKET_NAME: string;
     S3_ENDPOINT: string;
   }
+  AI_BASE_URL: string;
 }
 
 const loadEnvVariables = (): EnvConfig => {
@@ -78,7 +79,8 @@ const loadEnvVariables = (): EnvConfig => {
     "S3_SECRET_KEY",
     "S3_REGION",
     "S3_BUCKET_NAME",
-    "S3_ENDPOINT"
+    "S3_ENDPOINT",
+    "AI_BASE_URL"
   ];
 
   requiredEnvVariables.forEach((key) => {
@@ -121,13 +123,14 @@ const loadEnvVariables = (): EnvConfig => {
     REDIS_PORT: process.env.REDIS_PORT as string,
     REDIS_USERNAME: process.env.REDIS_USERNAME as string,
     REDIS_PASSWORD: process.env.REDIS_PASSWORD as string,
-    S3:{
-    S3_ACCESS_KEY: process.env.S3_ACCESS_KEY as string,
-    S3_SECRET_KEY: process.env.S3_SECRET_KEY as string,
-    S3_REGION: process.env.S3_REGION as string,
-    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME as string,
-    S3_ENDPOINT: process.env.S3_ENDPOINT as string,
-  }
+    S3: {
+      S3_ACCESS_KEY: process.env.S3_ACCESS_KEY as string,
+      S3_SECRET_KEY: process.env.S3_SECRET_KEY as string,
+      S3_REGION: process.env.S3_REGION as string,
+      S3_BUCKET_NAME: process.env.S3_BUCKET_NAME as string,
+      S3_ENDPOINT: process.env.S3_ENDPOINT as string,
+    },
+    AI_BASE_URL: process.env.AI_BASE_URL as string
   };
 };
 
