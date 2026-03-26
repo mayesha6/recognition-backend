@@ -9,6 +9,7 @@ import { getCurrentQuarter } from "../../utils/wallet"
 import { Wallet } from "../wallet/wallet.model"
 import { Category } from "../category/category.model"
 import { RecognitionStatus } from "./recognition.interface"
+import { AiMessengerService } from "../aiMessenger/aiMessenger.service"
 
 
 const sendRecognition = async (senderEmail: string, payload: any) => {
@@ -20,7 +21,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     tone,
     value,
     points,
-    message,
+    // message,
     image
   } = payload
 
@@ -73,6 +74,15 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found")
   }
 
+  const aiMessage = await AiMessengerService.generateMessage(sender._id.toString(), {
+    department,
+    category,
+    tone,
+    recognition_values: [value], // single value mapped into array
+    recipient_name: receiver.name,
+    sender_name: sender.name
+  });
+
   // deduct sender points
   senderWallet.pointsBalance -= points
   senderWallet.pointsUsed += points
@@ -91,7 +101,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     tone,
     value,
     points,
-    message,
+    message: aiMessage.message,
     image,
     status: RecognitionStatus.SENT
   })
@@ -114,7 +124,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
       templateData: {
         senderName: sender.name,
         receiverName: receiver.name,
-        message,
+        message: aiMessage.message,
         points,
         category,
         tone,

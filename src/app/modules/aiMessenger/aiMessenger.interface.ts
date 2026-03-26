@@ -6,7 +6,7 @@ export interface IRegenerateInput {
     recipient_name: string;
     recognition_values: string[];
     sender_name: string;
-    tone: number;
+    tone: string;
 }
 
 export interface IRegenerateResponse {
@@ -24,6 +24,6 @@ export interface IAiMessage {
     recipient_name: string;
     recognition_values: string[];
     sender_name: string;
-    tone: number;
+    tone: string;
     generated_message: string;
 }

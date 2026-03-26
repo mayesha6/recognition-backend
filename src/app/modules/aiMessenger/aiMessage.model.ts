@@ -16,7 +16,7 @@ const aiMessageSchema = new Schema<IAiMessage>(
         recipient_name: { type: String, required: true },
         recognition_values: [{ type: String, required: true }],
         sender_name: { type: String, required: true },
-        tone: { type: Number, required: true },
+        tone: { type: String, required: true },
         generated_message: { type: String, required: true }
     },
     { timestamps: true }

@@ -7,6 +7,7 @@ import { PointsRoutes } from "../modules/points/points.routes"
 import { DashboardRoutes } from "../modules/dashboard/dashboard.routes"
 import { WalletRoutes } from "../modules/wallet/wallet.routes"
 import { CategoryRoutes } from "../modules/category/category.routes"
+import { AiMessengerRoutes } from "../modules/aiMessenger/aiMessenger.route"
 
 
 export const router = Router()
@@ -46,7 +47,7 @@ const moduleRoutes = [
     },
     {
         path: "/ai",
-        route: CategoryRoutes
+        route: AiMessengerRoutes
     },
 
 

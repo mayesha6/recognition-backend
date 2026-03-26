@@ -11,6 +11,43 @@ import { redisClient } from "../../config/redis.config";
 
 const CACHE_TTL = 600; // 10 minutes
 
+const generateMessage = async (
+    userId: string,
+    payload: IRegenerateInput
+): Promise<IRegenerateResponse> => {
+    const cacheKey = `ai_generate:${hashPayload(payload)}`;
+
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+        return JSON.parse(cached.toString());
+    }
+
+    let data: IRegenerateResponse;
+
+    try {
+        const response = await aiAxios.post<IRegenerateResponse>(
+            "/api/messenger/generate",
+            payload
+        );
+        data = response.data;
+    } catch (error: any) {
+        throw new AppError(
+            httpStatus.BAD_GATEWAY,
+            error?.response?.data?.detail || "AI service failed"
+        );
+    }
+
+    await redisClient.set(cacheKey, JSON.stringify(data), { EX: CACHE_TTL });
+
+    await AiMessage.create({
+        user: userId,
+        ...payload,
+        generated_message: data.message
+    });
+
+    return data;
+};
+
 const regenerateMessage = async (
     userId: string,
     payload: IRegenerateInput
@@ -49,5 +86,6 @@ const regenerateMessage = async (
 };
 
 export const AiMessengerService = {
+    generateMessage,
     regenerateMessage
 };
