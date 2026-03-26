@@ -11,7 +11,7 @@ router.post(
     CategoryController.createCategory
 )
 
-router.get(
+router.get( 
     "/",
     checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
     CategoryController.getCategories

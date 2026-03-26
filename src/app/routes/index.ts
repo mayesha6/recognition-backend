@@ -44,6 +44,10 @@ const moduleRoutes = [
         path: "/category",
         route: CategoryRoutes
     },
+    {
+        path: "/ai",
+        route: CategoryRoutes
+    },
 
 
 
