@@ -1,8 +1,8 @@
 import { Schema, model, Types } from "mongoose";
 import { IAiMessage } from "./aiMessenger.interface";
 import { Department } from "../user/user.interface";
-import { CategoryName } from "../category/category.interface";
-import { RecognitionValues, Tone } from "../recognition/recognition.interface";
+// import { CategoryName } from "../category/category.interface";
+// import { RecognitionValues, Tone } from "../recognition/recognition.interface";
 
 
 
@@ -35,19 +35,19 @@ const aiMessageSchema = new Schema<IAiMessage>(
 
         category: {
             type: String,
-            enum: Object.values(CategoryName),
+            // enum: Object.values(CategoryName),
             required: true
         },
 
         tone: {
             type: String,
-            enum: Object.values(Tone),
+            // enum: Object.values(Tone),
             required: true
         },
 
         recognition_values: [{
             type: String,
-            enum: Object.values(RecognitionValues),
+            // enum: Object.values(RecognitionValues),
             required: true
         }],
     },

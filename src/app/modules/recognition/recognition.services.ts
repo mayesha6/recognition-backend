@@ -22,6 +22,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     value,
     points,
     // message,
+    additionalMessage,
     image
   } = payload
 
@@ -102,6 +103,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     value,
     points,
     message: aiMessage.message,
+    additionalMessage,
     image,
     status: RecognitionStatus.SENT
   })
@@ -125,6 +127,7 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
         senderName: sender.name,
         receiverName: receiver.name,
         message: aiMessage.message,
+        additionalMessage: additionalMessage || "",
         points,
         category,
         tone,

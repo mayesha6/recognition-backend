@@ -31,11 +31,15 @@ const generateMessage = async (
         );
         data = response.data;
     } catch (error: any) {
-        throw new AppError(
-            httpStatus.BAD_GATEWAY,
-            error?.response?.data?.detail || "AI service failed"
-        );
-    }
+    const errMessage =
+        error?.response?.data?.detail
+            ? typeof error.response.data.detail === "string"
+                ? error.response.data.detail
+                : JSON.stringify(error.response.data.detail)
+            : error.message || "AI service failed";
+
+    throw new AppError(httpStatus.BAD_GATEWAY, errMessage);
+}
 
     await redisClient.set(cacheKey, JSON.stringify(data), { EX: CACHE_TTL });
 
@@ -68,11 +72,15 @@ const regenerateMessage = async (
         );
         data = response.data;
     } catch (error: any) {
-        throw new AppError(
-            httpStatus.BAD_GATEWAY,
-            error?.response?.data?.detail || "AI service failed"
-        );
-    }
+    const errMessage =
+        error?.response?.data?.detail
+            ? typeof error.response.data.detail === "string"
+                ? error.response.data.detail
+                : JSON.stringify(error.response.data.detail)
+            : error.message || "AI service failed";
+
+    throw new AppError(httpStatus.BAD_GATEWAY, errMessage);
+}
 
     await redisClient.set(cacheKey, JSON.stringify(data), {"EX": CACHE_TTL});
 
