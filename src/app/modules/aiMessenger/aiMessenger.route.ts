@@ -1,5 +1,5 @@
 import express from "express";
-import { regenerateSchema } from "./aiMessenger.validation";
+import { editMessageSchema, regenerateSchema } from "./aiMessenger.validation";
 import { AiMessengerController } from "./aiMessenger.controller";
 import { aiRateLimiter } from "../../middlewares/aiRateLimiter";
 import { checkAuth } from "../../middlewares/checkAuth";
@@ -20,6 +20,13 @@ router.post(
     aiRateLimiter,
     validateRequest(regenerateSchema),
     AiMessengerController.regenerate
+);
+
+router.patch(
+    "/edit",
+    checkAuth("USER", "ADMIN", "SUPER_ADMIN"),
+    validateRequest(editMessageSchema),
+    AiMessengerController.editMessage
 );
 
 export const AiMessengerRoutes = router;

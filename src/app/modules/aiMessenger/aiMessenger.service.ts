@@ -93,7 +93,22 @@ const regenerateMessage = async (
     return data;
 };
 
+const editMessage = async (userId: string, newMessage: string) => {
+    const aiMessage = await AiMessage.findOne({ user: userId }).sort({ createdAt: -1 });
+
+    if (!aiMessage) {
+        throw new AppError(httpStatus.NOT_FOUND, "No message found to edit");
+    }
+
+    aiMessage.generated_message = newMessage;
+    await aiMessage.save();
+
+    return aiMessage;
+};
+
+
 export const AiMessengerService = {
     generateMessage,
-    regenerateMessage
+    regenerateMessage,
+    editMessage
 };

@@ -40,7 +40,26 @@ const regenerate = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const editMessage = catchAsync(async (req: Request, res: Response) => {
+    const user = req.user as JwtPayload;
+    const userId = user.id;
+    const { newMessage } = req.body;
+
+    const updatedMessage = await AiMessengerService.editMessage(
+        userId,
+        newMessage
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Message updated successfully",
+        data: updatedMessage
+    });
+});
+
 export const AiMessengerController = {
     generate,
-    regenerate
+    regenerate,
+    editMessage
 };

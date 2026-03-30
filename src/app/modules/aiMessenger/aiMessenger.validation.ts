@@ -8,3 +8,8 @@ export const regenerateSchema = z.object({
     sender_name: z.string(),
     tone: z.string()
 });
+
+
+export const editMessageSchema = z.object({
+    newMessage: z.string().min(1)
+});
