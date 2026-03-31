@@ -1,6 +1,6 @@
 import { Schema, model, Types } from "mongoose";
 import { IAiMessage } from "./aiMessenger.interface";
-import { Department } from "../user/user.interface";
+import { RecognitionStatus } from "../recognition/recognition.interface";
 // import { CategoryName } from "../category/category.interface";
 // import { RecognitionValues, Tone } from "../recognition/recognition.interface";
 
@@ -18,10 +18,10 @@ const aiMessageSchema = new Schema<IAiMessage>(
             type: String,
             required: true
         },
-        sender_name: {
-            type: String,
-            required: true
-        },
+        // sender_name: {
+        //     type: String,
+        //     required: true
+        // },
         generated_message: {
             type: String,
             required: true
@@ -29,7 +29,7 @@ const aiMessageSchema = new Schema<IAiMessage>(
 
         department: {
             type: String,
-            enum: Object.values(Department),
+            // enum: Object.values(Department),
             required: true,
         },
 
@@ -50,6 +50,12 @@ const aiMessageSchema = new Schema<IAiMessage>(
             // enum: Object.values(RecognitionValues),
             required: true
         }],
+
+        status: {
+            type: String,
+            enum: Object.values(RecognitionStatus),
+            default: RecognitionStatus.SENT
+        }
     },
     { timestamps: true }
 );

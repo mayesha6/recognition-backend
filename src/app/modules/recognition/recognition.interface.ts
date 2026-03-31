@@ -3,6 +3,7 @@
 
 export enum RecognitionStatus {
    FAILED = "FAILED",
+   PENDING = "PENDING",
    SENT = "SENT"
 }
 
@@ -48,7 +49,7 @@ export interface IRecognition {
   // department: Department
   // category: CategoryName
   tone: string
-  value: string
+  recognition_values: string[]
   // tone: Tone
   // value: RecognitionValues
 

@@ -8,12 +8,12 @@ const sendRecognitionValidation = z.object({
   image: z.string({
     message: "Image is required"
   }),
-  department: z.string().optional(),
-  category: z.string(),
+  // department: z.string().optional(),
+  // category: z.string(),
 
-  tone: z.string(),
+  // tone: z.string(),
 
-  value: z.string(),
+  // recognition_values: z.array(z.string()).min(1),
   // department: z.enum(Object.values(Department) as [string, ...string[]]).optional(),
   // category: z.enum(Object.values(CategoryName) as [string, ...string[]]),
 
@@ -23,7 +23,10 @@ const sendRecognitionValidation = z.object({
   points: z.number().min(1),
   message: z.string({
     message: "Message is required"
-  })
+  }).optional(),
+  additionalMessage: z.string({
+    message: "Additional message is required"
+  }).optional(),
 })
 
 export const RecognitionValidation = {

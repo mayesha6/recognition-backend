@@ -22,29 +22,29 @@ const recognitionSchema = new Schema<IRecognition>(
       required: true
     },
 
-    department: {
-      type: String,
-      // enum: Object.values(Department),
-      required: true,
-    },
+    // department: {
+    //   type: String,
+    //   // enum: Object.values(Department),
+    //   required: true,
+    // },
 
-    category: {
-      type: String,
-      // enum: Object.values(CategoryName),
-      required: true
-    },
+    // category: {
+    //   type: String,
+    //   // enum: Object.values(CategoryName),
+    //   required: true
+    // },
 
-    tone: {
-      type: String,
-      // enum: Object.values(Tone),
-      required: true
-    },
+    // tone: {
+    //   type: String,
+    //   // enum: Object.values(Tone),
+    //   required: true
+    // },
 
-    value: {
-      type: String,
-      // enum: Object.values(RecognitionValues),
-      required: true
-    },
+    // recognition_values: [{
+    //   type: String,
+    //   // enum: Object.values(RecognitionValues),
+    //   required: true
+    // }],
 
     points: {
       type: Number,
@@ -60,11 +60,7 @@ const recognitionSchema = new Schema<IRecognition>(
       required: false
     },
 
-    status: {
-      type: String,
-      enum: Object.values(RecognitionStatus),
-      default: RecognitionStatus.SENT
-    }
+ 
   },
   {
     timestamps: true

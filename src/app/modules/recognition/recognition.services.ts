@@ -10,103 +10,76 @@ import { Wallet } from "../wallet/wallet.model"
 import { Category } from "../category/category.model"
 import { RecognitionStatus } from "./recognition.interface"
 import { AiMessengerService } from "../aiMessenger/aiMessenger.service"
+import { AiMessage } from "../aiMessenger/aiMessage.model"
 
 
-const sendRecognition = async (senderEmail: string, payload: any) => {
-
+const sendRecognition = async (
+  senderEmail: string,
+  senderId: string, // pass userId from controller
+  payload: any
+) => {
   const {
     receiverEmail,
-    department,
-    category,
-    tone,
-    value,
     points,
-    // message,
+    messageId,
     additionalMessage,
     image
-  } = payload
+  } = payload;
 
-  const categoryData = await Category.findOne({ name: category })
+  const aiMessage = await AiMessage.findById(messageId);
 
-  if (!categoryData) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found")
+  if (!aiMessage) {
+    throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
   }
 
-  if (!categoryData.images.includes(image)) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Selected image is not valid for this category"
-    )
+  // ownership check
+  if (aiMessage.user.toString() !== senderId) {
+    throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
+  }
+
+  if (aiMessage.status === RecognitionStatus.SENT) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Recognition already sent");
   }
 
   if (senderEmail === receiverEmail) {
-    throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself")
+    throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself");
   }
 
-  const sender = await User.findOne({ email: senderEmail })
-  if (!sender) throw new AppError(httpStatus.NOT_FOUND, "Sender not found")
+  const sender = await User.findOne({ email: senderEmail });
+  if (!sender) throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
 
-  const receiver = await User.findOne({ email: receiverEmail })
-  if (!receiver) throw new AppError(httpStatus.NOT_FOUND, "Receiver not found")
+  const receiver = await User.findOne({ email: receiverEmail });
+  if (!receiver) throw new AppError(httpStatus.NOT_FOUND, "Receiver not found");
 
-  const { year, quarter } = getCurrentQuarter()
+  const { year, quarter } = getCurrentQuarter();
 
-  const senderWallet = await Wallet.findOne({
-    user: sender._id,
-    year,
-    quarter
-  })
+  const senderWallet = await Wallet.findOne({ user: sender._id, year, quarter });
+  if (!senderWallet) throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found");
+  if (senderWallet.pointsBalance < points) throw new AppError(httpStatus.BAD_REQUEST, "Not enough points");
 
-  if (!senderWallet) {
-    throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found")
-  }
+  const receiverWallet = await Wallet.findOne({ user: receiver._id, year, quarter });
+  if (!receiverWallet) throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
 
-  if (senderWallet.pointsBalance < points) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Not enough points")
-  }
+  senderWallet.pointsBalance -= points;
+  senderWallet.pointsUsed += points;
+  receiverWallet.pointsBalance += points;
 
-  const receiverWallet = await Wallet.findOne({
-    user: receiver._id,
-    year,
-    quarter
-  })
-
-  if (!receiverWallet) {
-    throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found")
-  }
-
-  const aiMessage = await AiMessengerService.generateMessage(sender._id.toString(), {
-    department,
-    category,
-    tone,
-    recognition_values: [value], // single value mapped into array
-    recipient_name: receiver.name,
-    sender_name: sender.name
-  });
-
-  // deduct sender points
-  senderWallet.pointsBalance -= points
-  senderWallet.pointsUsed += points
-
-  // add receiver points
-  receiverWallet.pointsBalance += points
-
-  await senderWallet.save()
-  await receiverWallet.save()
+  await senderWallet.save();
+  await receiverWallet.save();
 
   const recognition = await Recognition.create({
     senderEmail,
     receiverEmail,
-    department,
-    category,
-    tone,
-    value,
+    department: aiMessage.department,
+    category: aiMessage.category,
+    tone: aiMessage.tone,
+    recognition_values: aiMessage.recognition_values,
     points,
-    message: aiMessage.message,
+    message: aiMessage.generated_message,
     additionalMessage,
     image,
     status: RecognitionStatus.SENT
-  })
+  });
 
   await PointsTransaction.create({
     senderEmail,
@@ -114,9 +87,11 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
     points,
     type: "RECOGNITION",
     status: "COMPLETED"
-  })
+  });
 
   try {
+    aiMessage.status = RecognitionStatus.SENT;
+    await aiMessage.save();
 
     await sendEmail({
       from: senderEmail,
@@ -126,25 +101,20 @@ const sendRecognition = async (senderEmail: string, payload: any) => {
       templateData: {
         senderName: sender.name,
         receiverName: receiver.name,
-        message: aiMessage.message,
+        message: aiMessage.generated_message,
         additionalMessage: additionalMessage || "",
         points,
-        category,
-        tone,
-        value,
         image
       }
-    })
+    });
 
   } catch {
-
-    recognition.status = RecognitionStatus.FAILED
-    await recognition.save()
-
+    recognition.status = RecognitionStatus.FAILED;
+    await recognition.save();
   }
 
-  return recognition
-}
+  return recognition;
+};
 
 const getRecognitionHistory = async (
   email: string,

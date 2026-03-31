@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { AccountType, Department, IAuthProvider, IsActive, IUser, Role } from "./user.interface";
+import { AccountType, IAuthProvider, IsActive, IUser, Role } from "./user.interface";
 
 
 const authProviderSchema = new Schema<IAuthProvider>({
@@ -21,7 +21,7 @@ const userSchema = new Schema<IUser>({
     },
     department: {
         type: String,
-        enum: Object.values(Department),
+        // enum: Object.values(Department),
         required: true
     },
     accountType: {

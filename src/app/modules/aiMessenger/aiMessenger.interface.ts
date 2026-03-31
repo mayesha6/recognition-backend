@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { RecognitionStatus } from "../recognition/recognition.interface";
 
 export interface IRegenerateInput {
     category: string;
@@ -26,4 +27,5 @@ export interface IAiMessage {
     sender_name: string;
     tone: string;
     generated_message: string;
+  status: RecognitionStatus
 }
