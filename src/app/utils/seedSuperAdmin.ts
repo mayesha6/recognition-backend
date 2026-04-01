@@ -1,6 +1,6 @@
 import bcryptjs from "bcryptjs";
 import { envVars } from "../config/env";
-import { AccountType, Department, IAuthProvider, IUser, Role } from "../modules/user/user.interface";
+import { AccountType, IAuthProvider, IUser, Role } from "../modules/user/user.interface";
 import { User } from "../modules/user/user.model";
 import { Wallet } from "../modules/wallet/wallet.model";
 import { getCurrentQuarter } from "./wallet";
@@ -31,7 +31,7 @@ export const seedSuperAdmin = async () => {
             isVerified: true,
             auths: [authProvider],
             accountType: AccountType.ORGANIZATION,
-            department: Department.ADMINISTRATION
+            department: "ADMINISTRATION"
 
             // lastLogin?: Date
         }

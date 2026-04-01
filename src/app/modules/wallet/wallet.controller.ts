@@ -4,7 +4,7 @@ import { sendResponse } from "../../utils/sendResponse"
 import httpStatus from "http-status-codes";
 import { WalletServices } from "./wallet.services";
 import AppError from "../../errorHelpers/AppError";
-import { Department } from "../user/user.interface";
+// import { Department } from "../user/user.interface";
 
 const getWallet = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
@@ -27,9 +27,6 @@ const distributePoints = catchAsync(async (req: Request, res: Response, next: Ne
 
     const { department, points } = req.body
 
-    if (!Object.values(Department).includes(department)) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Invalid department")
-    }
 
     const result =
         await WalletServices.distributePoints(
