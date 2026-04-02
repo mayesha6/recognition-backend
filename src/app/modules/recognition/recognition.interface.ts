@@ -55,6 +55,7 @@ export interface IRecognition {
 
   points: number
   message: string
+  messageId?: string
   additionalMessage?: string
 
   status: RecognitionStatus

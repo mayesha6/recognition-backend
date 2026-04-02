@@ -13,7 +13,7 @@ export const aiRateLimiter = async (
     next: NextFunction
 ) => {
     const user = req.user as JwtPayload;
-    const userId = user.id;
+    const userId = user.userId;
     const key = `ai_rate: ${ userId }`;
 
     const count = await redisClient.incr(key);

@@ -55,6 +55,10 @@ const recognitionSchema = new Schema<IRecognition>(
       type: String,
       required: true
     },
+    messageId: {
+      type: String,
+      required: false
+    },
     additionalMessage: {
       type: String,
       required: false

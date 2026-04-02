@@ -8,15 +8,119 @@ import { sendEmail } from "../../utils/sendEmail"
 import { getCurrentQuarter } from "../../utils/wallet"
 import { Wallet } from "../wallet/wallet.model"
 import { Category } from "../category/category.model"
-import { RecognitionStatus } from "./recognition.interface"
+import { IRecognition, RecognitionStatus } from "./recognition.interface"
 import { AiMessengerService } from "../aiMessenger/aiMessenger.service"
 import { AiMessage } from "../aiMessenger/aiMessage.model"
 
 
+// const sendRecognition = async (
+//   senderEmail: string,
+//   senderId: string, // pass userId from controller
+//   payload: any
+// ) => {
+//   const {
+//     receiverEmail,
+//     points,
+//     messageId,
+//     additionalMessage,
+//     image
+//   } = payload;
+
+//   const aiMessage = await AiMessage.findById(messageId);
+
+//   if (!aiMessage) {
+//     throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
+//   }
+
+//   // ownership check
+//   if (aiMessage.user.toString() !== senderId) {
+//     throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
+//   }
+
+//   if (aiMessage.status === RecognitionStatus.SENT) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Recognition already sent");
+//   }
+
+//   if (senderEmail === receiverEmail) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself");
+//   }
+
+//   const sender = await User.findOne({ email: senderEmail });
+//   if (!sender) throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
+
+//   const receiver = await User.findOne({ email: receiverEmail });
+//   if (!receiver) throw new AppError(httpStatus.NOT_FOUND, "Receiver not found");
+
+//   const { year, quarter } = getCurrentQuarter();
+
+//   const senderWallet = await Wallet.findOne({ user: sender._id, year, quarter });
+//   if (!senderWallet) throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found");
+//   if (senderWallet.pointsBalance < points) throw new AppError(httpStatus.BAD_REQUEST, "Not enough points");
+
+//   const receiverWallet = await Wallet.findOne({ user: receiver._id, year, quarter });
+//   if (!receiverWallet) throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
+
+//   senderWallet.pointsBalance -= points;
+//   senderWallet.pointsUsed += points;
+//   receiverWallet.pointsBalance += points;
+
+//   await senderWallet.save();
+//   await receiverWallet.save();
+
+//   const recognition = await Recognition.create({
+//     senderEmail,
+//     receiverEmail,
+//     department: aiMessage.department,
+//     category: aiMessage.category,
+//     tone: aiMessage.tone,
+//     recognition_values: aiMessage.recognition_values,
+//     points,
+//     message: aiMessage.generated_message,
+//     additionalMessage,
+//     image,
+//     status: RecognitionStatus.SENT
+//   });
+
+//   await PointsTransaction.create({
+//     senderEmail,
+//     receiverEmail,
+//     points,
+//     type: "RECOGNITION",
+//     status: "COMPLETED"
+//   });
+
+//   try {
+//     aiMessage.status = RecognitionStatus.SENT;
+//     await aiMessage.save();
+
+//     await sendEmail({
+//       from: senderEmail,
+//       to: receiverEmail,
+//       subject: "You received a recognition!",
+//       templateName: "recognition",
+//       templateData: {
+//         senderName: sender.name,
+//         receiverName: receiver.name,
+//         message: aiMessage.generated_message,
+//         additionalMessage: additionalMessage || "",
+//         points,
+//         image
+//       }
+//     });
+
+//   } catch {
+//     recognition.status = RecognitionStatus.FAILED;
+//     await recognition.save();
+//   }
+
+//   return recognition;
+// };
+
+
 const sendRecognition = async (
   senderEmail: string,
-  senderId: string, // pass userId from controller
-  payload: any
+  senderId: string,
+  payload: IRecognition
 ) => {
   const {
     receiverEmail,
@@ -26,15 +130,47 @@ const sendRecognition = async (
     image
   } = payload;
 
-  const aiMessage = await AiMessage.findById(messageId);
+  let aiMessage;
 
-  if (!aiMessage) {
-    throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
-  }
+  if (messageId) {
+    // Use exact AI message if messageId is provided
+    aiMessage = await AiMessage.findById(messageId);
 
-  // ownership check
-  if (aiMessage.user.toString() !== senderId) {
-    throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
+    if (!aiMessage) {
+      throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
+    }
+    console.log("AI message found with provided messageId:", aiMessage);
+    console.log(
+      "Using specified AI message:",
+      "aiMessage.user =", aiMessage.user.toString(),
+      "senderId =", senderId,
+      "messageId =", messageId
+    );
+
+    // Prevent using another user's message
+    if (aiMessage.user.toString() !== senderId) {
+      throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
+    }
+  } else {
+    // Fallback to latest pending AI message
+    aiMessage = await AiMessage.findOne({
+      user: senderId,
+      status: RecognitionStatus.PENDING
+    }).sort({ createdAt: -1 });
+
+    if (!aiMessage) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "No pending AI message found for this user"
+      );
+    }
+
+    console.log(
+      "Using latest pending AI message:",
+      "aiMessage.user =", aiMessage.user.toString(),
+      "senderId =", senderId,
+      "messageId =", aiMessage._id.toString()
+    );
   }
 
   if (aiMessage.status === RecognitionStatus.SENT) {
@@ -42,23 +178,37 @@ const sendRecognition = async (
   }
 
   if (senderEmail === receiverEmail) {
-    throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "You cannot send recognition to yourself"
+    );
   }
 
   const sender = await User.findOne({ email: senderEmail });
-  if (!sender) throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
+  if (!sender) {
+    throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
+  }
 
   const receiver = await User.findOne({ email: receiverEmail });
-  if (!receiver) throw new AppError(httpStatus.NOT_FOUND, "Receiver not found");
+  if (!receiver) {
+    throw new AppError(httpStatus.NOT_FOUND, "Receiver not found");
+  }
 
   const { year, quarter } = getCurrentQuarter();
 
   const senderWallet = await Wallet.findOne({ user: sender._id, year, quarter });
-  if (!senderWallet) throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found");
-  if (senderWallet.pointsBalance < points) throw new AppError(httpStatus.BAD_REQUEST, "Not enough points");
+  if (!senderWallet) {
+    throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found");
+  }
+
+  if (senderWallet.pointsBalance < points) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Not enough points");
+  }
 
   const receiverWallet = await Wallet.findOne({ user: receiver._id, year, quarter });
-  if (!receiverWallet) throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
+  if (!receiverWallet) {
+    throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
+  }
 
   senderWallet.pointsBalance -= points;
   senderWallet.pointsUsed += points;
@@ -107,7 +257,6 @@ const sendRecognition = async (
         image
       }
     });
-
   } catch {
     recognition.status = RecognitionStatus.FAILED;
     await recognition.save();

@@ -21,18 +21,18 @@ export enum IsActive {
   INACTIVE = "INACTIVE",
   BLOCKED = "BLOCKED",
 }
-// export enum Department {
-//   SALES = "SALES",
-//   MARKETING = "MARKETING",
-//   FINANCE_AND_MARKETING = "FINANCE_AND_MARKETING",
-//   OPERATIONS = "OPERATIONS",
-//   HR = "HR",
-//   IT = "IT",
-//   CUSTOMER_SERVICE = "CUSTOMER_SERVICE",
-//   RESEARCH_AND_DEVELOPEMENT = "RESEARCH_AND_DEVELOPEMENT",
-//   LEGAL_RISK_COMPLIANCE = "LEGAL_RISK_COMPLIANCE",
-//   ADMINISTRATION = "ADMINISTRATION"
-// }
+export enum Department {
+  Sales = "Sales",
+  Marketing = "Marketing",
+  FinanceAndAccounting = "Finance & Accounting",
+  Operations = "Operations",
+  HumanResources = "Human Resources (HR)",
+  InformationTechnology = "Information Technology (IT)",
+  CustomerService = "Customer Service",
+  ResearchAndDevelopment = "Research & Development (R&D)",
+  LegalRiskAndCompliance = "Legal, Risk & Compliance",
+  Administration = "Administration"
+}
 
 export interface IUser {
   _id?: Types.ObjectId;
@@ -44,7 +44,7 @@ export interface IUser {
   isActive?: IsActive;
   isVerified?: boolean;
   role: Role;
-  // department: string; 
+  department: string; 
   accountType: AccountType;
   auths: IAuthProvider[];
   createdAt?: Date;

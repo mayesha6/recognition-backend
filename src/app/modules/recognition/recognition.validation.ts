@@ -24,6 +24,7 @@ const sendRecognitionValidation = z.object({
   message: z.string({
     message: "Message is required"
   }).optional(),
+  messageId: z.string().optional(),
   additionalMessage: z.string({
     message: "Additional message is required"
   }).optional(),

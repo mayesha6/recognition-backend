@@ -8,7 +8,7 @@ import { sendResponse } from "../../utils/sendResponse";
 
 const generate = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as JwtPayload;
-    const userId = user.id;
+    const userId = user.userId;
 
     const result = await AiMessengerService.generateMessage(
         userId,
@@ -25,8 +25,8 @@ const generate = catchAsync(async (req: Request, res: Response) => {
 
 const regenerate = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as JwtPayload;
-    const userId = user.id;
-
+    const userId = user.userId;
+    
     const result = await AiMessengerService.regenerateMessage(
         userId,
         req.body
@@ -42,11 +42,12 @@ const regenerate = catchAsync(async (req: Request, res: Response) => {
 
 const editMessage = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as JwtPayload;
-    const userId = user.id;
-    const { newMessage } = req.body;
+    const userId = user.userId;
+    const { messageId, newMessage } = req.body;
 
     const updatedMessage = await AiMessengerService.editMessage(
         userId,
+        messageId,
         newMessage
     );
 

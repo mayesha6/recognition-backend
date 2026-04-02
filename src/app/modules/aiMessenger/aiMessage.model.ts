@@ -54,7 +54,7 @@ const aiMessageSchema = new Schema<IAiMessage>(
         status: {
             type: String,
             enum: Object.values(RecognitionStatus),
-            default: RecognitionStatus.SENT
+            default: RecognitionStatus.PENDING
         }
     },
     { timestamps: true }

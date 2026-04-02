@@ -2,7 +2,7 @@
 import httpStatus from "http-status-codes";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
-import { IUser, Role } from "./user.interface";
+import { Department, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import { userSearchableFields } from "./user.constant";
 import { QueryBuilder } from "../../utils/QueryBuiler";
@@ -40,23 +40,24 @@ const createUser = async (payload: Partial<IUser>) => {
     accountType,
     role,
     ...rest,
+    department: rest.department || Department.Operations,
   });
 
-    if (!user) {
+  if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, "Failed to register user");
   }
 
   const { quarter, year } = getCurrentQuarter()
 
-await Wallet.create({
-  user: user._id,
-  quarter,
-  year,
-  pointsAllocated: 100,
-  pointsBalance: 100
-})
+  const wallet = await Wallet.create({
+    user: user._id,
+    quarter,
+    year,
+    pointsAllocated: 0,
+    pointsBalance: 0
+  })
   const redisKey = `otp:${email}`;
-const otp = generateOtp();
+  const otp = generateOtp();
 
   await redisClient.set(redisKey, otp, {
     expiration: { type: "EX", value: 120 },
@@ -72,7 +73,7 @@ const otp = generateOtp();
     },
   });
 
-  return user;
+  return { wallet, user };
 };
 
 const getAllUsers = async (query: Record<string, string>) => {
@@ -89,60 +90,112 @@ const getAllUsers = async (query: Record<string, string>) => {
     queryBuilder.getMeta(),
   ]);
 
+  const { year, quarter } = getCurrentQuarter();
+
+  const userIds = data.map((user: any) => user._id);
+
+  const wallets = await Wallet.find({
+    user: { $in: userIds },
+    year,
+    quarter,
+  });
+
+  const usersWithWallet = data.map((user: any) => {
+    const wallet = wallets.find(
+      (w: any) => w.user.toString() === user._id.toString()
+    );
+
+    return {
+      ...user.toObject?.() ? user.toObject() : user,
+      wallet: wallet || null,
+    };
+  });
+
   return {
-    data,
+    data: usersWithWallet,
     meta,
   };
 };
 
+
 const getMe = async (userId: string) => {
-    const user = await User.findById(userId).select("-password");
-    return {
-        data: user
+  const user = await User.findById(userId).select("-password");
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const { year, quarter } = getCurrentQuarter();
+
+  const wallet = await Wallet.findOne({
+    user: user._id,
+    year,
+    quarter
+  });
+
+  return {
+    data: {
+      ...user.toObject(),
+      wallet: wallet || null
     }
+  };
 };
 
 const getSingleUser = async (id: string) => {
-    const user = await User.findById(id).select("-password");
-    return {
-        data: user
+  const user = await User.findById(id).select("-password");
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const { year, quarter } = getCurrentQuarter();
+
+  const wallet = await Wallet.findOne({
+    user: user._id,
+    year,
+    quarter
+  });
+
+  return {
+    data: {
+      ...user.toObject(),
+      wallet: wallet || null
     }
+  };
 };
 
 const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken: JwtPayload) => {
 
+  if (decodedToken.role === Role.USER) {
+    if (userId !== decodedToken.userId) {
+      throw new AppError(401, "You are not authorized")
+    }
+  }
+
+  const ifUserExist = await User.findById(userId);
+
+  if (!ifUserExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "User Not Found")
+  }
+
+  if (decodedToken.role === Role.ADMIN && ifUserExist.role === Role.SUPER_ADMIN) {
+    throw new AppError(401, "You are not authorized")
+  }
+
+  if (payload.role) {
     if (decodedToken.role === Role.USER) {
-        if (userId !== decodedToken.userId) {
-            throw new AppError(401, "You are not authorized")
-        }
+      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
     }
 
-    const ifUserExist = await User.findById(userId);
+  }
 
-    if (!ifUserExist) {
-        throw new AppError(httpStatus.NOT_FOUND, "User Not Found")
+  if (payload.isActive || payload.isDeleted || payload.isVerified) {
+    if (decodedToken.role === Role.USER) {
+      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
     }
+  }
 
-    if (decodedToken.role === Role.ADMIN && ifUserExist.role === Role.SUPER_ADMIN) {
-        throw new AppError(401, "You are not authorized")
-    }
+  const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
 
-    if (payload.role) {
-        if (decodedToken.role === Role.USER) {
-            throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-        }
-
-    }
-
-    if (payload.isActive || payload.isDeleted || payload.isVerified) {
-        if (decodedToken.role === Role.USER) {
-            throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-        }
-    }
-
-    const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
-
-    return newUpdatedUser
+  return newUpdatedUser
 }
 
 const getS3KeyFromUrl = (url: string) => {

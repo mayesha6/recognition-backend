@@ -9,7 +9,11 @@ const sendRecognition = catchAsync(async (req: Request, res: Response) => {
 
   const sender = req.user as JwtPayload
   const senderEmail = sender.email
-  const senderId = sender._id
+  const senderId = sender.userId
+
+    console.log("req.body in controller:", req.body);
+  console.log("senderId in controller:", senderId);
+  console.log("sender:", sender);
 
   const result = await RecognitionServices.sendRecognition(
     senderEmail,

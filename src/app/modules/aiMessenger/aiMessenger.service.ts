@@ -210,23 +210,48 @@ const regenerateMessage = async (
     return result;
 };
 
-const editMessage = async (userId: string, newMessage: string) => {
-    const aiMessage = await AiMessage.findOne({ user: userId }).sort({ createdAt: -1 });
+// const editMessage = async (userId: string, newMessage: string) => {
+//     const aiMessage = await AiMessage.findOne({ user: userId }).sort({ createdAt: -1 });
 
-    if (!aiMessage) {
-        throw new AppError(httpStatus.NOT_FOUND, "No message found to edit");
-    }
+//     if (!aiMessage) {
+//         throw new AppError(httpStatus.NOT_FOUND, "No message found to edit");
+//     }
 
-    aiMessage.generated_message = newMessage;
-    aiMessage.status = RecognitionStatus.PENDING;
-    await aiMessage.save();
+//     aiMessage.generated_message = newMessage;
+//     aiMessage.status = RecognitionStatus.PENDING;
+//     await aiMessage.save();
 
-    return {
-        messageId: aiMessage._id.toString(),
-        message: aiMessage.generated_message
-    };
+//     return {
+//         messageId: aiMessage._id.toString(),
+//         message: aiMessage.generated_message
+//     };
+// };
+
+
+const editMessage = async (
+  userId: string,
+  messageId: string,
+  newMessage: string
+) => {
+  const aiMessage = await AiMessage.findById(messageId);
+
+  if (!aiMessage) {
+    throw new AppError(httpStatus.NOT_FOUND, "No message found to edit");
+  }
+
+  if (aiMessage.user.toString() !== userId) {
+    throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message edit");
+  }
+
+  aiMessage.generated_message = newMessage;
+  aiMessage.status = RecognitionStatus.PENDING;
+  await aiMessage.save();
+
+  return {
+    messageId: aiMessage._id.toString(),
+    message: aiMessage.generated_message
+  };
 };
-
 export const AiMessengerService = {
     generateMessage,
     regenerateMessage,
