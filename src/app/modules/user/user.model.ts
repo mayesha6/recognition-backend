@@ -19,11 +19,11 @@ const userSchema = new Schema<IUser>({
         enum: Object.values(Role),
         default: Role.USER
     },
-    department: {
-        type: String,
-        // enum: Object.values(Department),
-        required: true
-    },
+    // department: {
+    //     type: String,
+    //     // enum: Object.values(Department),
+    //     required: true
+    // },
     accountType: {
         type: String,
         enum: Object.values(AccountType),

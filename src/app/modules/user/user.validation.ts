@@ -36,6 +36,5 @@ export const updateUserZodSchema = z.object({
   isActive: z.enum(Object.values(IsActive) as [string, ...string[]]).optional(),
   isDeleted: z.boolean().optional(),
   isVerified: z.boolean().optional(),
-  address: z.string().max(200, { message: "Address cannot exceed 200 characters." }).optional(),
   picture: z.any().optional(),
   department: z.string()});

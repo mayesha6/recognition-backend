@@ -44,7 +44,7 @@ export interface IUser {
   isActive?: IsActive;
   isVerified?: boolean;
   role: Role;
-  department: string; 
+  // department: string; 
   accountType: AccountType;
   auths: IAuthProvider[];
   createdAt?: Date;

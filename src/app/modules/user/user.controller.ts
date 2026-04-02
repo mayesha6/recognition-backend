@@ -16,7 +16,7 @@ const createUser = catchAsync(
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.CREATED,
-      message: "User Created Successfully",
+      message: "User Created Successfully. OTP sent to email. Please verify your account.",
       data: user,
     });
   }
