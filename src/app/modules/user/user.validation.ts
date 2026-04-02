@@ -23,7 +23,7 @@ export const createUserZodSchema = z.object({
     .regex(/^(?=.*\d)/, {
       message: "Password must contain at least 1 number.",
     }),
-  });
+});
 
 export const updateUserZodSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters long." }).max(50, { message: "Name cannot exceed 50 characters." }).optional(),
