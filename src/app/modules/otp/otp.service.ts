@@ -74,14 +74,13 @@ const resendOtp = async (email: string) => {
 
 const verifyResetOtp = async (email: string, otp: string) => {
   const redisKey = `otp:reset:${email}`;
-
   const savedOtp = await redisClient.get(redisKey);
 
   if (!savedOtp) {
     throw new AppError(401, "OTP expired or invalid");
   }
 
-  if (savedOtp !== otp) {
+  if (String(savedOtp) !== String(otp)) {
     throw new AppError(401, "Invalid OTP");
   }
 
@@ -94,6 +93,14 @@ const verifyResetOtp = async (email: string, otp: string) => {
   if (!user.isVerified) {
     throw new AppError(401, "User is not verified");
   }
+
+  const verifiedKey = `otp:reset:verified:${email}`;
+
+  await redisClient.set(verifiedKey, "true", {
+    expiration: { type: "EX", value: 300 },
+  });
+
+  await redisClient.del([redisKey]);
 
   return null;
 };

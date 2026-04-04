@@ -22,7 +22,6 @@ const getNewAccessToken = async (refreshToken: string) => {
 
 const resetPassword = async (
   email: string,
-  otp: string,
   newPassword: string,
   confirmPassword: string
 ) => {
@@ -30,15 +29,11 @@ const resetPassword = async (
     throw new AppError(400, "Passwords do not match");
   }
 
-  const redisKey = `otp:reset:${email}`;
-  const savedOtp = await redisClient.get(redisKey);
+  const verifiedKey = `otp:reset:verified:${email}`;
+  const isVerified = await redisClient.get(verifiedKey);
 
-  if (!savedOtp) {
-    throw new AppError(401, "OTP expired or invalid");
-  }
-
-  if (savedOtp !== otp) {
-    throw new AppError(401, "Invalid OTP");
+  if (!isVerified) {
+    throw new AppError(401, "OTP verification required");
   }
 
   const user = await User.findOne({ email });
@@ -58,7 +53,7 @@ const resetPassword = async (
   user.password = hashedPassword;
   await user.save();
 
-  await redisClient.del([redisKey]);
+  await redisClient.del([verifiedKey]);
 
   return null;
 };

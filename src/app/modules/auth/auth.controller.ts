@@ -108,9 +108,9 @@ const changePassword = catchAsync(
 );
 export const resetPassword = catchAsync(
   async (req: Request, res: Response) => {
-    const { email, otp, newPassword, confirmPassword } = req.body;
+    const { email, newPassword, confirmPassword } = req.body;
 
-    await AuthServices.resetPassword(email, otp, newPassword, confirmPassword);
+    await AuthServices.resetPassword(email, newPassword, confirmPassword);
 
     sendResponse(res, {
       success: true,
