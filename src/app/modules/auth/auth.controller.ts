@@ -108,13 +108,13 @@ const changePassword = catchAsync(
 );
 export const resetPassword = catchAsync(
   async (req: Request, res: Response) => {
-    const { newPassword, confirmPassword } = req.body;
-    const token = req.cookies.resetToken;
-    await AuthServices.resetPassword(token, newPassword, confirmPassword );
+    const { email, otp, newPassword, confirmPassword } = req.body;
+
+    await AuthServices.resetPassword(email, otp, newPassword, confirmPassword);
 
     sendResponse(res, {
       success: true,
-      statusCode: 200,
+      statusCode: httpStatus.OK,
       message: "Password reset successfully",
       data: null,
     });
@@ -136,7 +136,7 @@ const setPassword = catchAsync(
   }
 );
 const forgotPassword = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response) => {
     const { email } = req.body;
 
     await AuthServices.forgotPassword(email);
@@ -144,7 +144,7 @@ const forgotPassword = catchAsync(
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
-      message: "Email Sent Successfully",
+      message: "OTP sent successfully",
       data: null,
     });
   }

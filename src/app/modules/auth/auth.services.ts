@@ -21,24 +21,27 @@ const getNewAccessToken = async (refreshToken: string) => {
 }
 
 const resetPassword = async (
-  token: string,
+  email: string,
+  otp: string,
   newPassword: string,
-  confirmPassword : string
+  confirmPassword: string
 ) => {
-  if (!token) {
-    throw new AppError(401, "Reset token missing");
-  }
-
   if (newPassword !== confirmPassword) {
     throw new AppError(400, "Passwords do not match");
   }
 
-  const decoded = jwt.verify(
-    token,
-    envVars.JWT_ACCESS_SECRET
-  ) as JwtPayload;
-console.log("decoded",decoded)
-  const user = await User.findById(decoded.userId);
+  const redisKey = `otp:reset:${email}`;
+  const savedOtp = await redisClient.get(redisKey);
+
+  if (!savedOtp) {
+    throw new AppError(401, "OTP expired or invalid");
+  }
+
+  if (savedOtp !== otp) {
+    throw new AppError(401, "Invalid OTP");
+  }
+
+  const user = await User.findOne({ email });
 
   if (!user) throw new AppError(404, "User not found");
   if (!user.isVerified) throw new AppError(401, "User not verified");
@@ -55,6 +58,7 @@ console.log("decoded",decoded)
   user.password = hashedPassword;
   await user.save();
 
+  await redisClient.del([redisKey]);
 
   return null;
 };

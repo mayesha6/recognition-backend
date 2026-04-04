@@ -41,24 +41,16 @@ const resendOtp = catchAsync(
 const verifyResetOtp = catchAsync(async (req: Request, res: Response) => {
   const { email, otp } = req.body;
 
-  const resetToken = await OTPService.verifyResetOtp(email, otp);
-
-  res.cookie("resetToken", resetToken, {
-    httpOnly: true,
-    secure: false, // production e true
-    sameSite: "lax",
-    maxAge: 10 * 60 * 1000, // 10 min
-  });
+  await OTPService.verifyResetOtp(email, otp);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "OTP verified successfully",
-    data: {
-      resetToken,
-    },
+    data: null,
   });
 });
+
 export const OTPController = {
   verifySignupOtp,
   resendOtp,

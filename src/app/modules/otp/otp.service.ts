@@ -95,21 +95,7 @@ const verifyResetOtp = async (email: string, otp: string) => {
     throw new AppError(401, "User is not verified");
   }
 
-  const jwtPayload = {
-    userId: user._id,
-    email: user.email,
-    role: user.role,
-  };
-
-  const resetToken = jwt.sign(
-    jwtPayload,
-    envVars.JWT_ACCESS_SECRET,
-    { expiresIn: "10m" }
-  );
-
-  await redisClient.del([redisKey]);
-
-  return resetToken;
+  return null;
 };
 
 
