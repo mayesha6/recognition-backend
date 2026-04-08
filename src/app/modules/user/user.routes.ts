@@ -24,7 +24,7 @@ router.patch(
     maxCount: 1,
   }),
   parseFormDataMiddleware,
-  validateRequest(updateUserZodSchema),
+  // validateRequest(updateUserZodSchema),
   UserControllers.updateMyProfile
 );
 router.get(

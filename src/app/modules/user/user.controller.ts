@@ -91,20 +91,20 @@ const updateMyProfile = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const decodedToken = req.user as JwtPayload;
     const userId = decodedToken.userId;
-
-    const payload: any = { ...req.body };
+    const { oldPassword, newPassword, confirmPassword, ...restPayload } = req.body;
 
     const uploadedFile = (req.files as Express.MulterS3.File[])?.[0];
-console.log("file:", uploadedFile);
 
-    const updatedUser = await UserServices.updateMyProfile(
+    const updatedUser = await UserServices.updateMyProfile({
       userId,
-      payload,
+      payload: restPayload,
       decodedToken,
-      uploadedFile
-    );
+      file: uploadedFile,
+      oldPassword,
+      newPassword,
+      confirmPassword,
+    });
 
-    // send response
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,

@@ -203,42 +203,54 @@ const getS3KeyFromUrl = (url: string) => {
   return parts[1] ?? "";
 };
 
-const updateMyProfile = async (
-  userId: string,
-  payload: any,
-  decodedToken: JwtPayload,
-  file?: Express.MulterS3.File
-) => {
+const updateMyProfile = async ({
+  userId,
+  payload,
+  decodedToken,
+  file,
+  oldPassword,
+  newPassword,
+  confirmPassword,
+}: any) => {
   const user = await User.findById(userId);
   if (!user) throw new AppError(404, "User not found");
 
-  // authorization check
+  // Authorization check
   if (decodedToken.role === "USER" && decodedToken.userId !== userId) {
     throw new AppError(403, "You are not authorized");
   }
 
-  // hash password if provided
-  if (payload.password) {
+  // Handle password change if requested
+  if (oldPassword || newPassword || confirmPassword) {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      throw new AppError(400, "All password fields are required");
+    }
+
+    if (newPassword !== confirmPassword) {
+      throw new AppError(400, "Passwords do not match");
+    }
+
+    const isOldPasswordMatch = await bcryptjs.compare(oldPassword, user.password as string);
+    if (!isOldPasswordMatch) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Old password does not match");
+    }
+
     payload.password = await bcryptjs.hash(
-      payload.password,
+      newPassword,
       Number(envVars.BCRYPT_SALT_ROUND || 10)
     );
   }
 
-  // handle profile picture update
+  // Handle profile picture update
   if (file) {
-    // delete old image from S3
     if (user.picture) {
       const oldKey = getS3KeyFromUrl(user.picture);
       if (oldKey) await deleteFileFromS3(oldKey);
     }
-
-    // new image already uploaded via multer-s3
-    // file.location contains the public URL
     payload.picture = file.location;
   }
 
-  // update user
+  // Update user
   const updated = await User.findByIdAndUpdate(userId, payload, {
     returnDocument: "after",
     runValidators: true,
