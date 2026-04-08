@@ -25,7 +25,7 @@ app.use(express.json())
 app.set("trust proxy", 1);
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
-    origin: [envVars.FRONTEND_URL, envVars.FRONTEND_LOCALHOST_URL, envVars.DASHBOARD_URL],
+    origin: [envVars.FRONTEND_URL, envVars.FRONTEND_LOCALHOST_URL, envVars.DASHBOARD_URL, envVars.DASHBOARD_LOCALHOST_URL],
     credentials: true
 }))
 
