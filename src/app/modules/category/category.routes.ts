@@ -13,7 +13,7 @@ router.post(
 
 router.get( 
     "/",
-    checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
+    // checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
     CategoryController.getCategories
 )
 
