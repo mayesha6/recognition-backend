@@ -30,8 +30,6 @@ router.post(
     CategoryController.addImages
 )
 
-
-
 router.patch(
     "/update-category/:id",
     checkAuth("ADMIN", "SUPER_ADMIN"),

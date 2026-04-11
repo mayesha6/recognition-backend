@@ -10,6 +10,12 @@ import { verifyToken } from "../utils/jwt";
 export const checkAuth = (...authRoles: string[]) => async (req: Request, res: Response, next: NextFunction) => {
 
     try {
+
+         console.log("Origin:", req.headers.origin);
+    console.log("Authorization:", req.headers.authorization);
+    console.log("Cookies:", req.cookies);
+    console.log("Raw Cookie Header:", req.headers.cookie);
+    
         const accessToken = req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
         // const accessToken = req.headers.authorization;
 
