@@ -14,9 +14,14 @@ export const checkAuth = (...authRoles: string[]) => async (req: Request, res: R
          console.log("Origin:", req.headers.origin);
     console.log("Authorization:", req.headers.authorization);
     console.log("Cookies:", req.cookies);
-    console.log("Raw Cookie Header:", req.headers.cookie);
 
-        const accessToken = req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
+    const bearerToken = req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null;
+
+    const accessToken = req.cookies?.accessToken || bearerToken;
+
+        // const accessToken = req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
         // const accessToken = req.headers.authorization;
 
         if (!accessToken) {
