@@ -15,14 +15,14 @@ export const checkAuth = (...authRoles: string[]) => async (req: Request, res: R
     console.log("Authorization:", req.headers.authorization);
     console.log("Cookies:", req.cookies);
     console.log("Raw Cookie Header:", req.headers.cookie);
-    
+
         const accessToken = req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
         // const accessToken = req.headers.authorization;
 
         if (!accessToken) {
             throw new AppError(403, "No Token Recieved")
         }
-
+        console.log("Access Token:", accessToken);
 
         const verifiedToken = verifyToken(accessToken, envVars.JWT_ACCESS_SECRET) as JwtPayload
 
