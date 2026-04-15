@@ -12,8 +12,13 @@ const transporter = nodemailer.createTransport({
         pass: envVars.EMAIL_SENDER.SMTP_PASS
     },
     port: Number(envVars.EMAIL_SENDER.SMTP_PORT),
-    host: envVars.EMAIL_SENDER.SMTP_HOST
+    host: envVars.EMAIL_SENDER.SMTP_HOST,
+     tls: {
+        rejectUnauthorized: false 
+    }
 })
+console.log("SMTP_USER:", envVars.EMAIL_SENDER.SMTP_USER);
+console.log("SMTP_PASS:", envVars.EMAIL_SENDER.SMTP_PASS);
 
 interface SendEmailOptions {
     from?: string;
@@ -51,6 +56,10 @@ export const sendEmail = async ({
                 contentType: attachment.contentType
             }))
         })
+        console.log("SMTP_USER1:", envVars.EMAIL_SENDER.SMTP_USER);
+console.log("SMTP_PASS1:", envVars.EMAIL_SENDER.SMTP_PASS);
+console.log("info:", info);
+
         console.log(`\u2709\uFE0F Email sent to ${to}: ${info.messageId}`);
     } catch (error: any) {
         console.log("email sending error", error.message);
