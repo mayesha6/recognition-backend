@@ -19,6 +19,8 @@ const transporter = nodemailer.createTransport({
 })
 console.log("SMTP_USER:", envVars.EMAIL_SENDER.SMTP_USER);
 console.log("SMTP_PASS:", envVars.EMAIL_SENDER.SMTP_PASS);
+console.log("SMTP_PORT:", envVars.EMAIL_SENDER.SMTP_PORT);
+console.log("SMTP_HOST:", envVars.EMAIL_SENDER.SMTP_HOST);
 
 interface SendEmailOptions {
     from?: string;
