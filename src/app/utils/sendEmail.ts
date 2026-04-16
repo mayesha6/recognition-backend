@@ -21,6 +21,7 @@ console.log("SMTP_USER:", envVars.EMAIL_SENDER.SMTP_USER);
 console.log("SMTP_PASS:", envVars.EMAIL_SENDER.SMTP_PASS);
 console.log("SMTP_PORT:", envVars.EMAIL_SENDER.SMTP_PORT);
 console.log("SMTP_HOST:", envVars.EMAIL_SENDER.SMTP_HOST);
+console.log("SMTP_PASS2:", JSON.stringify(envVars.EMAIL_SENDER.SMTP_PASS));
 
 interface SendEmailOptions {
     from?: string;
