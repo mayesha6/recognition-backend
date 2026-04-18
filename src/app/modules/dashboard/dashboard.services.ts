@@ -121,6 +121,7 @@ const getReports = async (filters: any) => {
       }
     }
   ])
+  console.log("Department data:", departmentData)
 
   // 🔥 Value pie chart
   const totalCount = await Recognition.countDocuments(matchStage)
