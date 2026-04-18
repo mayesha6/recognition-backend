@@ -90,12 +90,14 @@ const getDashboard = async () => {
 const getReports = async (filters: any) => {
 
   const { startDate, endDate, department } = filters
-
+console.log("Received filters in getReports:", filters)
   const matchStage: any = {}
 
   if (department) {
     matchStage.department = department
   }
+  console.log("Match stage after department filter:", matchStage)
+  console.log("department filter:", department)
 
   if (startDate && endDate) {
     matchStage.createdAt = {
