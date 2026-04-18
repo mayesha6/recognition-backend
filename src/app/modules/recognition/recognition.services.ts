@@ -11,6 +11,7 @@ import { Category } from "../category/category.model"
 import { IRecognition, RecognitionStatus } from "./recognition.interface"
 import { AiMessengerService } from "../aiMessenger/aiMessenger.service"
 import { AiMessage } from "../aiMessenger/aiMessage.model"
+import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValues"
 
 
 // const sendRecognition = async (
@@ -217,13 +218,17 @@ const sendRecognition = async (
   await senderWallet.save();
   await receiverWallet.save();
 
+  const recognitionValues = normalizeRecognitionValues(
+  aiMessage.recognition_values
+);
+
   const recognition = await Recognition.create({
     senderEmail,
     receiverEmail,
     department: aiMessage.department,
     category: aiMessage.category,
     tone: aiMessage.tone,
-    recognition_values: aiMessage.recognition_values,
+    recognition_values: recognitionValues,
     points,
     message: aiMessage.generated_message,
     additionalMessage,
