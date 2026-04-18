@@ -146,7 +146,7 @@ const departmentData = await Recognition.aggregate([
     { $match: matchStage },
     {
       $group: {
-        _id: "$value",
+        _id: "$recognition_values",
         count: { $sum: 1 }
       }
     },

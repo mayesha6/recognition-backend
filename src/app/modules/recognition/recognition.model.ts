@@ -40,11 +40,11 @@ const recognitionSchema = new Schema<IRecognition>(
     //   required: true
     // },
 
-    // recognition_values: [{
-    //   type: String,
-    //   // enum: Object.values(RecognitionValues),
-    //   required: true
-    // }],
+    recognition_values: [{
+      type: String,
+      // enum: Object.values(RecognitionValues),
+      required: true
+    }],
 
     points: {
       type: Number,
