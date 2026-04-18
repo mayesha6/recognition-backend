@@ -142,29 +142,21 @@ const departmentData = await Recognition.aggregate([
   // 🔥 Value pie chart
   const totalCount = await Recognition.countDocuments(matchStage)
 console.log("Docs with recognition_values:", totalCount)
- const valueData = await Recognition.aggregate([
+const valueData = await Recognition.aggregate([
   { $match: matchStage },
 
-  // 👇 array ভেঙে দাও
+  {
+    $match: {
+      recognition_values: { $exists: true, $ne: [] }
+    }
+  },
+
   { $unwind: "$recognition_values" },
 
   {
     $group: {
       _id: "$recognition_values",
       count: { $sum: 1 }
-    }
-  },
-
-  {
-    $project: {
-      _id: 0,
-      value: "$_id",
-      percent: {
-        $multiply: [
-          { $divide: ["$count", totalCount || 1] },
-          100
-        ]
-      }
     }
   }
 ])
