@@ -107,24 +107,24 @@ console.log("Received filters in getReports:", filters)
   }
 
   // 🔥 Department chart
- const departmentData = await Recognition.aggregate([
+const departmentData = await Recognition.aggregate([
   { $match: matchStage },
 
-  // 👇 user collection join করো
+  // 👇 receiverEmail দিয়ে user join
   {
     $lookup: {
       from: "users",
-      localField: "user",
-      foreignField: "_id",
-      as: "user"
+      localField: "receiverEmail",
+      foreignField: "email",
+      as: "receiver"
     }
   },
 
-  { $unwind: "$user" },
+  { $unwind: "$receiver" },
 
   {
     $group: {
-      _id: "$user.department",
+      _id: "$receiver.department",
       total: { $sum: 1 }
     }
   },
