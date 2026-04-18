@@ -20,8 +20,10 @@ interface EnvConfig {
   EXPRESS_SESSION_SECRET: string;
   FRONTEND_URL: string;
   FRONTEND_LOCALHOST_URL: string;
+  FRONTEND_DOMAIN_URL: string;
   DASHBOARD_URL: string;
   DASHBOARD_LOCALHOST_URL: string;
+  DASHBOARD_DOMAIN_URL: string;
   // CLOUDINARY: {
   //   CLOUDINARY_CLOUD_NAME: string;
   //   CLOUDINARY_API_KEY: string;
@@ -67,8 +69,10 @@ const loadEnvVariables = (): EnvConfig => {
     "EXPRESS_SESSION_SECRET",
     "FRONTEND_URL",
     "FRONTEND_LOCALHOST_URL",
+    "FRONTEND_DOMAIN_URL",
     "DASHBOARD_URL",
     "DASHBOARD_LOCALHOST_URL",
+    "DASHBOARD_DOMAIN_URL",
     // "CLOUDINARY_CLOUD_NAME",
     // "CLOUDINARY_API_KEY",
     // "CLOUDINARY_API_SECRET",
@@ -114,8 +118,10 @@ const loadEnvVariables = (): EnvConfig => {
     EXPRESS_SESSION_SECRET: process.env.EXPRESS_SESSION_SECRET as string,
     FRONTEND_URL: process.env.FRONTEND_URL as string,
     FRONTEND_LOCALHOST_URL: process.env.FRONTEND_LOCALHOST_URL as string,
+    FRONTEND_DOMAIN_URL: process.env.FRONTEND_DOMAIN_URL as string,
     DASHBOARD_URL: process.env.DASHBOARD_URL as string,
     DASHBOARD_LOCALHOST_URL: process.env.DASHBOARD_LOCALHOST_URL as string,
+    DASHBOARD_DOMAIN_URL: process.env.DASHBOARD_DOMAIN_URL as string,
     // CLOUDINARY: {
     //   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME as string,
     //   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY as string,
