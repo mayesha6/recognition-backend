@@ -26,7 +26,7 @@ const getReports = catchAsync(async (req, res) => {
     endDate,
     department
   })
-
+console.log("Reports result:", result)
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
