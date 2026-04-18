@@ -203,6 +203,63 @@ const getS3KeyFromUrl = (url: string) => {
   return parts[1] ?? "";
 };
 
+// const updateMyProfile = async ({
+//   userId,
+//   payload,
+//   decodedToken,
+//   file,
+//   oldPassword,
+//   newPassword,
+//   confirmPassword,
+// }: any) => {
+//   const user = await User.findById(userId);
+//   if (!user) throw new AppError(404, "User not found");
+
+//   // Authorization check
+//   if (decodedToken.role === "USER" && decodedToken.userId !== userId) {
+//     throw new AppError(403, "You are not authorized");
+//   }
+
+//   // Handle password change if requested
+//   if (oldPassword || newPassword || confirmPassword) {
+//     if (!oldPassword || !newPassword || !confirmPassword) {
+//       throw new AppError(400, "All password fields are required");
+//     }
+
+//     if (newPassword !== confirmPassword) {
+//       throw new AppError(400, "Passwords do not match");
+//     }
+
+//     const isOldPasswordMatch = await bcryptjs.compare(oldPassword, user.password as string);
+//     if (!isOldPasswordMatch) {
+//       throw new AppError(httpStatus.UNAUTHORIZED, "Old password does not match");
+//     }
+
+//     payload.password = await bcryptjs.hash(
+//       newPassword,
+//       Number(envVars.BCRYPT_SALT_ROUND || 10)
+//     );
+//   }
+
+//   // Handle profile picture update
+//   if (file) {
+//     if (user.picture) {
+//       const oldKey = getS3KeyFromUrl(user.picture);
+//       if (oldKey) await deleteFileFromS3(oldKey);
+//     }
+//     payload.picture = file.location;
+//   }
+
+//   // Update user
+//   const updated = await User.findByIdAndUpdate(userId, payload, {
+//     returnDocument: "after",
+//     runValidators: true,
+//   });
+
+//   return updated;
+// };
+
+
 const updateMyProfile = async ({
   userId,
   payload,
@@ -220,7 +277,22 @@ const updateMyProfile = async ({
     throw new AppError(403, "You are not authorized");
   }
 
-  // Handle password change if requested
+  // ===============================
+  // 🔐 ONLY ALLOWED FIELDS
+  // ===============================
+  const allowedFields = ["name", "department", "accountType"];
+
+  const filteredPayload: any = {};
+
+  Object.keys(payload).forEach((key) => {
+    if (allowedFields.includes(key)) {
+      filteredPayload[key] = payload[key];
+    }
+  });
+
+  // ===============================
+  // 🔐 PASSWORD UPDATE (SAFE)
+  // ===============================
   if (oldPassword || newPassword || confirmPassword) {
     if (!oldPassword || !newPassword || !confirmPassword) {
       throw new AppError(400, "All password fields are required");
@@ -230,35 +302,47 @@ const updateMyProfile = async ({
       throw new AppError(400, "Passwords do not match");
     }
 
-    const isOldPasswordMatch = await bcryptjs.compare(oldPassword, user.password as string);
+    const isOldPasswordMatch = await bcryptjs.compare(
+      oldPassword,
+      user.password as string
+    );
+
     if (!isOldPasswordMatch) {
-      throw new AppError(httpStatus.UNAUTHORIZED, "Old password does not match");
+      throw new AppError(httpStatus.UNAUTHORIZED, "Old password is incorrect");
     }
 
-    payload.password = await bcryptjs.hash(
+    filteredPayload.password = await bcryptjs.hash(
       newPassword,
       Number(envVars.BCRYPT_SALT_ROUND || 10)
     );
   }
 
-  // Handle profile picture update
+  // ===============================
+  // 🖼️ PROFILE PICTURE UPDATE
+  // ===============================
   if (file) {
     if (user.picture) {
       const oldKey = getS3KeyFromUrl(user.picture);
       if (oldKey) await deleteFileFromS3(oldKey);
     }
-    payload.picture = file.location;
+
+    filteredPayload.picture = file.location;
   }
 
-  // Update user
-  const updated = await User.findByIdAndUpdate(userId, payload, {
-    returnDocument: "after",
-    runValidators: true,
-  });
+  // ===============================
+  // 🚀 UPDATE USER
+  // ===============================
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    filteredPayload,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 
-  return updated;
+  return updatedUser;
 };
-
 const deleteUserById = async (id: string) => {
   const user = await User.findByIdAndDelete(id);
 

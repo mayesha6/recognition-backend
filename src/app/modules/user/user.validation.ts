@@ -38,4 +38,5 @@ export const updateUserZodSchema = z.object({
   isDeleted: z.boolean().optional(),
   isVerified: z.boolean().optional(),
   picture: z.any().optional(),
-  department: z.string().optional()});
+  department: z.string().optional()
+});
