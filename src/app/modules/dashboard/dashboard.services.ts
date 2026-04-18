@@ -109,7 +109,7 @@ const getReports = async (filters: any) => {
     { $match: matchStage },
     {
       $group: {
-        _id: "$department",
+        _id: "$user.department",
         total: { $sum: 1 }
       }
     },
