@@ -35,7 +35,7 @@ router.get(
 router.patch(
   "/:id",
   validateRequest(updateUserZodSchema),
-  checkAuth(...Object.values(Role)),
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   UserControllers.updateUser
 );
 router.delete(
