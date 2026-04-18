@@ -142,27 +142,32 @@ const departmentData = await Recognition.aggregate([
   // 🔥 Value pie chart
   const totalCount = await Recognition.countDocuments(matchStage)
 
-  const valueData = await Recognition.aggregate([
-    { $match: matchStage },
-    {
-      $group: {
-        _id: "$recognition_values",
-        count: { $sum: 1 }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        value: "$_id",
-        percent: {
-          $multiply: [
-            { $divide: ["$count", totalCount || 1] },
-            100
-          ]
-        }
+ const valueData = await Recognition.aggregate([
+  { $match: matchStage },
+
+  // 👇 array ভেঙে দাও
+  { $unwind: "$recognition_values" },
+
+  {
+    $group: {
+      _id: "$recognition_values",
+      count: { $sum: 1 }
+    }
+  },
+
+  {
+    $project: {
+      _id: 0,
+      value: "$_id",
+      percent: {
+        $multiply: [
+          { $divide: ["$count", totalCount || 1] },
+          100
+        ]
       }
     }
-  ])
+  }
+])
 
   // 🔥 Line chart
   const trendData = await Recognition.aggregate([
