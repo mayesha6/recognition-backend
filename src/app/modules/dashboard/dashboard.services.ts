@@ -107,22 +107,36 @@ console.log("Received filters in getReports:", filters)
   }
 
   // 🔥 Department chart
-  const departmentData = await Recognition.aggregate([
-    { $match: matchStage },
-    {
-      $group: {
-        _id: "$user.department",
-        total: { $sum: 1 }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        department: "$_id",
-        total: 1
-      }
+ const departmentData = await Recognition.aggregate([
+  { $match: matchStage },
+
+  // 👇 user collection join করো
+  {
+    $lookup: {
+      from: "users",
+      localField: "user",
+      foreignField: "_id",
+      as: "user"
     }
-  ])
+  },
+
+  { $unwind: "$user" },
+
+  {
+    $group: {
+      _id: "$user.department",
+      total: { $sum: 1 }
+    }
+  },
+
+  {
+    $project: {
+      _id: 0,
+      department: "$_id",
+      total: 1
+    }
+  }
+])
   console.log("Department data:", departmentData)
 
   // 🔥 Value pie chart
