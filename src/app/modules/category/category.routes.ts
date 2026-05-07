@@ -47,4 +47,5 @@ router.delete(
     CategoryController.deleteImage
 )
 
+
 export const CategoryRoutes = router
