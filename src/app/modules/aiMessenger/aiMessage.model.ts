@@ -18,10 +18,10 @@ const aiMessageSchema = new Schema<IAiMessage>(
             type: String,
             required: true
         },
-        // sender_name: {
-        //     type: String,
-        //     required: true
-        // },
+        sender_name: {
+            type: String,
+            required: true
+        },
         generated_message: {
             type: String,
             required: true
