@@ -161,13 +161,13 @@ const regenerateMessage = async (
     userId: string,
     payload: IRegenerateInput
 ): Promise<IRegenerateResponse & { messageId: string }> => {
-    const cacheKey = `ai_cache:${hashPayload(payload)}`;
+    // const cacheKey = `ai_cache:${hashPayload(payload)}`;
 
-    const cached = await redisClient.get(cacheKey);
-    if (cached) {
-        const parsed = JSON.parse(cached.toString());
-        return parsed;
-    }
+    // const cached = await redisClient.get(cacheKey);
+    // if (cached) {
+    //     const parsed = JSON.parse(cached.toString());
+    //     return parsed;
+    // }
 
     let data: IRegenerateResponse;
 
@@ -200,7 +200,7 @@ const regenerateMessage = async (
         messageId: savedMessage._id.toString()
     };
 
-    await redisClient.set(cacheKey, JSON.stringify(result), { EX: CACHE_TTL });
+    // await redisClient.set(cacheKey, JSON.stringify(result), { EX: CACHE_TTL });
 
     return result;
 };
