@@ -6,7 +6,7 @@ export interface IRegenerateInput {
     department: string;
     recipient_name: string;
     recognition_values: string[];
-    sender_name: string;
+    // sender_name: string;
     tone: string;
     userPrompt: string;
 }
