@@ -118,7 +118,7 @@ const generateMessage = async (
     userId: string,
     payload: IRegenerateInput
 ): Promise<IRegenerateResponse & { messageId: string }> => {
-    const cacheKey = `ai_generate:${hashPayload(payload)}`;
+    // const cacheKey = `ai_generate:${hashPayload(payload)}`;
 
    
 
