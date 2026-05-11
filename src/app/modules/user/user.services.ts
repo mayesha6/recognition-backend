@@ -99,6 +99,28 @@ const approveOrganization = async (userId: string) => {
   return user;
 };
 
+const rejectOrganization = async (userId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.accountType !== AccountType.ORGANIZATION) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Only organization accounts can be rejected"
+    );
+  }
+
+  user.status = AccountStatus.REJECTED;
+  user.role = Role.USER; // fallback safe role
+
+  await user.save();
+
+  return user;
+};
+
 const getAllUsers = async (query: Record<string, string>) => {
   const queryBuilder = new QueryBuilder(User.find(), query);
   const usersData = queryBuilder
@@ -396,6 +418,7 @@ const deleteAllUsers = async () => {
 export const UserServices = {
   createUser,
   approveOrganization,
+  rejectOrganization,
   getAllUsers,
   getMe,
   getSingleUser,

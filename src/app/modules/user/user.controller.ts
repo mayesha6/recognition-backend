@@ -35,6 +35,19 @@ const approveOrganization = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const rejectOrganization = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const result = await UserServices.rejectOrganization(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Organization rejected successfully",
+    data: result,
+  });
+});
+
 const getAllUsers = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const query = req.query;
@@ -173,6 +186,7 @@ const deleteAllUsers = catchAsync(
 export const UserControllers = {
   createUser,
   approveOrganization,
+  rejectOrganization,
   getAllUsers,
   getMe,
   getSingleUser,

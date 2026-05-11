@@ -48,6 +48,12 @@ router.patch(
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   UserControllers.approveOrganization
 );
+router.patch(
+  "/reject/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  UserControllers.rejectOrganization
+);
+
 router.delete(
   "/:id",
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
@@ -58,6 +64,7 @@ router.delete(
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   UserControllers.deleteAllUsers
 );
+
 
 
 export const UserRoutes = router;
