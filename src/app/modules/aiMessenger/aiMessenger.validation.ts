@@ -7,7 +7,7 @@ export const regenerateSchema = z.object({
     recognition_values: z.array(z.string()).min(1),
     // sender_name: z.string(),
     tone: z.string(),
-    userPrompt: z.string()
+    userPrompt: z.string().optional()
 });
 
 

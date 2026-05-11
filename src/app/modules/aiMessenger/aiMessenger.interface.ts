@@ -8,7 +8,7 @@ export interface IRegenerateInput {
     recognition_values: string[];
     // sender_name: string;
     tone: string;
-    userPrompt: string;
+    userPrompt?: string;
 }
 
 export interface IRegenerateResponse {
@@ -17,7 +17,7 @@ export interface IRegenerateResponse {
     category: string;
     tone: string;
     recipient_name: string;
-    userPrompt: string
+    userPrompt?: string
 }
 
 export interface IAiMessage {
@@ -30,5 +30,5 @@ export interface IAiMessage {
     tone: string;
     generated_message: string;
     status: RecognitionStatus
-    userPrompt: string
+    userPrompt?: string
 }
