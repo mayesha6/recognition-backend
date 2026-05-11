@@ -2,7 +2,7 @@
 import httpStatus from "http-status-codes";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
-import { Department, IUser, Role } from "./user.interface";
+import { AccountStatus, AccountType, Department, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import { userSearchableFields } from "./user.constant";
 import { QueryBuilder } from "../../utils/QueryBuiler";
@@ -24,21 +24,25 @@ const createUser = async (payload: Partial<IUser>) => {
     throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
   }
 
-  const role =
-    accountType === "ORGANIZATION"
-      ? Role.ADMIN
-      : Role.USER;
-
   const hashedPassword = await bcryptjs.hash(
     password as string,
     Number(envVars.BCRYPT_SALT_ROUND)
   );
+
+  const role = Role.USER;
+
+  // 🔥 STATUS LOGIC
+  const status =
+    accountType === AccountType.ORGANIZATION
+      ? AccountStatus.PENDING
+      : AccountStatus.APPROVED;
 
   const user = await User.create({
     email,
     password: hashedPassword,
     accountType,
     role,
+    status,
     ...rest,
     department: rest.department || Department.Operations,
   });

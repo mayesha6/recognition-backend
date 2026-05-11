@@ -11,6 +11,12 @@ export enum AccountType {
   INDIVIDUAL = "INDIVIDUAL"
 }
 
+export enum AccountStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
 export interface IAuthProvider {
   provider: "google" | "credentials";
   providerId: string;
@@ -46,6 +52,7 @@ export interface IUser {
   role: Role;
   department: string; 
   accountType: AccountType;
+  status: AccountStatus;
   auths: IAuthProvider[];
   createdAt?: Date;
   updatedAt?: Date;
