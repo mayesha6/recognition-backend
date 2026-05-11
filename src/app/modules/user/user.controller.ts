@@ -114,6 +114,21 @@ const updateMyProfile = catchAsync(
   }
 );
 
+const deleteOwnAccount = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const decodedToken = req.user as JwtPayload;
+  const userId = decodedToken.userId
+
+  const result = await UserServices.deleteOwnAccount(userId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: result.message,
+    data: null,
+  });
+});
+
+
 const deleteUserById = catchAsync(
   async (req: Request, res: Response) => {
     const { id } = req.params;
@@ -149,6 +164,7 @@ export const UserControllers = {
   getSingleUser,
   updateUser,
   updateMyProfile,
+  deleteOwnAccount,
   deleteUserById,
   deleteAllUsers
 };

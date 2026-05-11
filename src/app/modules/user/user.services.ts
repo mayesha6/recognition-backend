@@ -343,6 +343,17 @@ const updateMyProfile = async ({
 
   return updatedUser;
 };
+
+const deleteOwnAccount = async (userId: string) => {
+
+  const user = await User.findById(userId);
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+
+  await User.findByIdAndDelete(userId);
+
+  return { message: "Your account has been deleted successfully" };
+};
+
 const deleteUserById = async (id: string) => {
   const user = await User.findByIdAndDelete(id);
 
@@ -366,6 +377,7 @@ export const UserServices = {
   getSingleUser,
   updateUser,
   updateMyProfile,
+  deleteOwnAccount,
   deleteUserById,
   deleteAllUsers
 };
