@@ -22,6 +22,19 @@ const createUser = catchAsync(
   }
 );
 
+const approveOrganization = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const result = await UserServices.approveOrganization(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Organization approved successfully",
+    data: result,
+  });
+});
+
 const getAllUsers = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const query = req.query;
@@ -159,6 +172,7 @@ const deleteAllUsers = catchAsync(
 
 export const UserControllers = {
   createUser,
+  approveOrganization,
   getAllUsers,
   getMe,
   getSingleUser,

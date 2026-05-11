@@ -11,6 +11,7 @@ import { sendResponse } from "../../utils/sendResponse";
 import { setAuthCookie } from "../../utils/setCookie";
 import { createUserTokens } from "../../utils/userTokens";
 import { AuthServices } from "./auth.services";
+import { AccountStatus } from "../user/user.interface";
 
 const credentialsLogin = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -21,6 +22,25 @@ const credentialsLogin = catchAsync(
 
       if (!user) {
         return next(new AppError(401, info.message));
+      }
+
+      // 🔴 BLOCK UNAPPROVED USERS (ADD HERE)
+      if (user.status === AccountStatus.PENDING) {
+        return next(
+          new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account is pending admin approval"
+          )
+        );
+      }
+
+      if (user.status === AccountStatus.REJECTED) {
+        return next(
+          new AppError(
+            httpStatus.FORBIDDEN,
+            "Your account has been rejected by admin"
+          )
+        );
       }
 
       const userTokens = await createUserTokens(user);

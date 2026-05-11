@@ -80,6 +80,25 @@ const createUser = async (payload: Partial<IUser>) => {
   return { wallet, user };
 };
 
+const approveOrganization = async (userId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.accountType !== AccountType.ORGANIZATION) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Not an organization account");
+  }
+
+  user.status = AccountStatus.APPROVED;
+  user.role = Role.ADMIN;
+
+  await user.save();
+
+  return user;
+};
+
 const getAllUsers = async (query: Record<string, string>) => {
   const queryBuilder = new QueryBuilder(User.find(), query);
   const usersData = queryBuilder
@@ -376,6 +395,7 @@ const deleteAllUsers = async () => {
 
 export const UserServices = {
   createUser,
+  approveOrganization,
   getAllUsers,
   getMe,
   getSingleUser,

@@ -43,6 +43,11 @@ router.delete(
   checkAuth(...Object.values(Role)),
   UserControllers.deleteOwnAccount
 );
+router.patch(
+  "/approve/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  UserControllers.approveOrganization
+);
 router.delete(
   "/:id",
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
