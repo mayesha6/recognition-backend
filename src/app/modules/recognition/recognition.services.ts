@@ -218,6 +218,8 @@ const sendRecognition = async (
   );
 }
 
+console.log(aiMessage.department, receiver.department)
+
   senderWallet.pointsBalance -= points;
   senderWallet.pointsUsed += points;
   receiverWallet.pointsBalance += points;
