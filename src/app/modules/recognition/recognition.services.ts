@@ -234,7 +234,8 @@ console.log(aiMessage.department, receiver.department)
   const recognition = await Recognition.create({
     senderEmail,
     receiverEmail,
-    department: aiMessage.department,
+    // department: aiMessage.department,
+    department: receiver.department,
     category: aiMessage.category,
     tone: aiMessage.tone,
     recognition_values: recognitionValues,
