@@ -211,6 +211,13 @@ const sendRecognition = async (
     throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
   }
 
+  if (aiMessage.department !== receiver.department) {
+  throw new AppError(
+    httpStatus.BAD_REQUEST,
+    "Receiver department does not match the recognition department"
+  );
+}
+
   senderWallet.pointsBalance -= points;
   senderWallet.pointsUsed += points;
   receiverWallet.pointsBalance += points;
