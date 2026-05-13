@@ -10,31 +10,36 @@ import { verifyToken } from "../utils/jwt";
 export const checkAuth = (...authRoles: string[]) => async (req: Request, res: Response, next: NextFunction) => {
 
     try {
+        const bearerToken = req.headers.authorization?.startsWith("Bearer ")
+            ? req.headers.authorization.split(" ")[1]
+            : null;
 
-         console.log("Origin:", req.headers.origin);
-    console.log("Authorization:", req.headers.authorization);
-    console.log("Cookies:", req.cookies);
-
-    const bearerToken = req.headers.authorization?.startsWith("Bearer ")
-      ? req.headers.authorization.split(" ")[1]
-      : null;
-
-    const accessToken = req.cookies?.accessToken || bearerToken;
+        const accessToken = req.cookies?.accessToken || bearerToken;
 
         // const accessToken = req.cookies?.accessToken || req.headers.authorization?.split(" ")[1];
         // const accessToken = req.headers.authorization;
 
         if (!accessToken) {
-            throw new AppError(403, "No Token Recieved")
+            throw new AppError(401, "No Token Recieved")
         }
-        console.log("Access Token:", accessToken);
 
-        const verifiedToken = verifyToken(accessToken, envVars.JWT_ACCESS_SECRET) as JwtPayload
+        let verifiedToken;
 
+        try {
+            verifiedToken = verifyToken(accessToken, envVars.JWT_ACCESS_SECRET) as JwtPayload;
+        } catch (error: any) {
+            console.log("JWT Error:", error.message);
+
+            if (error.name === "TokenExpiredError") {
+                return next(new AppError(401, "Token expired"));
+            }
+
+            return next(new AppError(401, "Invalid token"));
+        }
         const isUserExist = await User.findOne({ email: verifiedToken.email })
 
         if (!isUserExist) {
-            throw new AppError(httpStatus.BAD_REQUEST, "User does not exist")
+            throw new AppError(httpStatus.NOT_FOUND, "User does not exist")
         }
         if (!isUserExist.isVerified) {
             throw new AppError(httpStatus.BAD_REQUEST, "User is not verified")
@@ -46,8 +51,8 @@ export const checkAuth = (...authRoles: string[]) => async (req: Request, res: R
             throw new AppError(httpStatus.BAD_REQUEST, "User is deleted")
         }
 
-        if (!authRoles.includes(verifiedToken.role)) {
-            throw new AppError(403, "You are not permitted to view this route!!!")
+        if (!verifiedToken?.role || !authRoles.includes(verifiedToken.role)) {
+            return next(new AppError(403, "You are not permitted to view this route"));
         }
         req.user = verifiedToken
         next()
