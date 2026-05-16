@@ -87,7 +87,7 @@ export class QueryBuilder<T> {
   private filterQuery: any = {};
 
   constructor(modelQuery: Query<T[], T>, query: Record<string, string>) {
-    this.baseQuery = modelQuery; // 🔥 keep original query for meta
+    this.baseQuery = modelQuery;
     this.modelQuery = modelQuery.lean<T[]>();
     this.query = query;
   }
@@ -103,21 +103,31 @@ export class QueryBuilder<T> {
     }
 
     this.filterQuery = { ...filter };
+
     this.modelQuery = this.modelQuery.find(this.filterQuery);
 
     return this;
   }
 
   // =====================================
-  // 🔎 SEARCH
+  // 🔎 SEARCH (FIXED - MAIN UPDATE)
   // =====================================
   search(searchableField: string[]): this {
-    const searchTerm = this.query.searchTerm;
+    // 🔥 FIX: support both searchTerm & search
+    const rawSearch =
+      this.query.searchTerm || this.query.search || "";
 
+    const searchTerm = rawSearch.trim();
+
+    // 🔥 FIX: if no search input, skip search stage
     if (!searchTerm) return this;
 
+    // 🔥 FIX: merge into same filterQuery (no override issue)
     this.filterQuery.$or = searchableField.map((field) => ({
-      [field]: { $regex: searchTerm, $options: "i" },
+      [field]: {
+        $regex: searchTerm,
+        $options: "i", // case insensitive
+      },
     }));
 
     this.modelQuery = this.modelQuery.find(this.filterQuery);
@@ -137,7 +147,7 @@ export class QueryBuilder<T> {
   }
 
   // =====================================
-  // 📌 SELECT FIELDS
+  // 📌 FIELDS
   // =====================================
   fields(): this {
     const fields = this.query.fields?.split(",").join(" ") || "";
@@ -170,7 +180,7 @@ export class QueryBuilder<T> {
   }
 
   // =====================================
-  // 📊 META DATA (FIXED)
+  // 📊 META (SAFE COUNT)
   // =====================================
   async getMeta() {
     const totalDocuments = await this.baseQuery.model.countDocuments(
