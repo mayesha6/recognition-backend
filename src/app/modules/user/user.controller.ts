@@ -52,7 +52,8 @@ const getAllUsers = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const query = req.query;
     const result = await UserServices.getAllUsers(
-      query as Record<string, string>
+      query as Record<string, string>,
+      req.user as JwtPayload
     );
 
     sendResponse(res, {
@@ -159,7 +160,12 @@ const deleteUserById = catchAsync(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const result = await UserServices.deleteUserById(id);
+    const decodedToken = req.user as JwtPayload;
+
+    const result = await UserServices.deleteUserById(
+      id,
+      decodedToken
+    );
 
     sendResponse(res, {
       success: true,

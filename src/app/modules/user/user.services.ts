@@ -4,7 +4,7 @@ import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { AccountStatus, AccountType, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
-import { userSearchableFields } from "./user.constant";
+import { userFilterableFields, userSearchableFields } from "./user.constant";
 import { QueryBuilder } from "../../utils/QueryBuiler";
 import { JwtPayload } from "jsonwebtoken";
 import bcryptjs from 'bcryptjs';
@@ -121,47 +121,97 @@ const rejectOrganization = async (userId: string) => {
   return user;
 };
 
-const getAllUsers = async (query: Record<string, string>) => {
-  const queryBuilder = new QueryBuilder(User.find(), query);
-  const usersData = queryBuilder
-    .filter()
-    .search(userSearchableFields)
+// const getAllUsers = async (query: Record<string, string>) => {
+//   const queryBuilder = new QueryBuilder(User.find(), query);
+//   const usersData = queryBuilder
+//     .filter()
+//     .search(userSearchableFields)
+//     .sort()
+//     .fields()
+//     .paginate();
+
+//   const [data, meta] = await Promise.all([
+//     usersData.build(),
+//     queryBuilder.getMeta(),
+//   ]);
+
+//   const { year, quarter } = getCurrentQuarter();
+
+//   const userIds = data.map((user: any) => user._id);
+
+//   const wallets = await Wallet.find({
+//     user: { $in: userIds },
+//     year,
+//     quarter,
+//   });
+
+//   const usersWithWallet = data.map((user: any) => {
+//     const wallet = wallets.find(
+//       (w: any) => w.user.toString() === user._id.toString()
+//     );
+
+//     return {
+//       ...user.toObject?.() ? user.toObject() : user,
+//       wallet: wallet || null,
+//     };
+//   });
+
+//   return {
+//     data: usersWithWallet,
+//     meta,
+//   };
+// };
+
+const getAllUsers = async (
+  query: Record<string, string>,
+  decodedToken: JwtPayload
+) => {
+
+  const { searchTerm, ...filterData } = query;
+
+  const filter: any = {};
+
+  // =====================================
+  // 🔐 Department Restriction
+  // =====================================
+  if (decodedToken.role === Role.ADMIN) {
+    filter.department = decodedToken.department;
+  }
+
+  // =====================================
+  // 🎯 Filtering
+  // =====================================
+  Object.entries(filterData).forEach(([key, value]) => {
+    if (userFilterableFields.includes(key)) {
+      filter[key] = value;
+    }
+  });
+
+  let mongoQuery = User.find(filter);
+
+  // =====================================
+  // 🔎 Searching (name + email)
+  // =====================================
+  if (searchTerm) {
+    mongoQuery = mongoQuery.find({
+      $or: userSearchableFields.map((field) => ({
+        [field]: { $regex: searchTerm, $options: "i" },
+      })),
+    });
+  }
+
+  const queryBuilder = new QueryBuilder(mongoQuery, query)
     .sort()
     .fields()
     .paginate();
 
   const [data, meta] = await Promise.all([
-    usersData.build(),
+    queryBuilder.build(),
     queryBuilder.getMeta(),
   ]);
 
-  const { year, quarter } = getCurrentQuarter();
-
-  const userIds = data.map((user: any) => user._id);
-
-  const wallets = await Wallet.find({
-    user: { $in: userIds },
-    year,
-    quarter,
-  });
-
-  const usersWithWallet = data.map((user: any) => {
-    const wallet = wallets.find(
-      (w: any) => w.user.toString() === user._id.toString()
-    );
-
-    return {
-      ...user.toObject?.() ? user.toObject() : user,
-      wallet: wallet || null,
-    };
-  });
-
-  return {
-    data: usersWithWallet,
-    meta,
-  };
+  return { data, meta };
 };
-
 
 const getMe = async (userId: string) => {
   const user = await User.findById(userId).select("-password");
@@ -207,42 +257,89 @@ const getSingleUser = async (id: string) => {
   };
 };
 
-const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken: JwtPayload) => {
+// const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken: JwtPayload) => {
 
+//   if (decodedToken.role === Role.USER) {
+//     if (userId !== decodedToken.userId) {
+//       throw new AppError(401, "You are not authorized")
+//     }
+//   }
+
+//   const ifUserExist = await User.findById(userId);
+
+//   if (!ifUserExist) {
+//     throw new AppError(httpStatus.NOT_FOUND, "User Not Found")
+//   }
+
+//   if (decodedToken.role === Role.ADMIN && ifUserExist.role === Role.SUPER_ADMIN) {
+//     throw new AppError(401, "You are not authorized")
+//   }
+
+//   if (payload.role) {
+//     if (decodedToken.role === Role.USER) {
+//       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
+//     }
+
+//   }
+
+//   if (payload.isActive || payload.isDeleted || payload.isVerified) {
+//     if (decodedToken.role === Role.USER) {
+//       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
+//     }
+//   }
+
+//   const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
+
+//   return newUpdatedUser
+// }
+
+const updateUser = async (
+  userId: string,
+  payload: Partial<IUser>,
+  decodedToken: JwtPayload
+) => {
+
+  const targetUser = await User.findById(userId);
+
+  if (!targetUser) {
+    throw new AppError(404, "User Not Found");
+  }
+
+  // ❌ Normal user cannot update others
   if (decodedToken.role === Role.USER) {
-    if (userId !== decodedToken.userId) {
-      throw new AppError(401, "You are not authorized")
+    throw new AppError(403, "Not authorized");
+  }
+
+  // 🔥 ADMIN restrictions
+  if (decodedToken.role === Role.ADMIN) {
+
+    if (targetUser.role === Role.SUPER_ADMIN) {
+      throw new AppError(403, "Not authorized");
+    }
+
+    if (targetUser.department !== decodedToken.department) {
+      throw new AppError(
+        403,
+        "You cannot modify users from another department"
+      );
+    }
+
+    if (payload.department) {
+      throw new AppError(
+        403,
+        "Admin cannot change department"
+      );
     }
   }
 
-  const ifUserExist = await User.findById(userId);
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    payload,
+    { new: true, runValidators: true }
+  );
 
-  if (!ifUserExist) {
-    throw new AppError(httpStatus.NOT_FOUND, "User Not Found")
-  }
-
-  if (decodedToken.role === Role.ADMIN && ifUserExist.role === Role.SUPER_ADMIN) {
-    throw new AppError(401, "You are not authorized")
-  }
-
-  if (payload.role) {
-    if (decodedToken.role === Role.USER) {
-      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-    }
-
-  }
-
-  if (payload.isActive || payload.isDeleted || payload.isVerified) {
-    if (decodedToken.role === Role.USER) {
-      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-    }
-  }
-
-  const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
-
-  return newUpdatedUser
-}
-
+  return updatedUser;
+};
 const getS3KeyFromUrl = (url: string) => {
   const parts = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`);
   return parts[1] ?? "";
@@ -399,12 +496,42 @@ const deleteOwnAccount = async (userId: string) => {
   return { message: "Your account has been deleted successfully" };
 };
 
-const deleteUserById = async (id: string) => {
-  const user = await User.findByIdAndDelete(id);
+// const deleteUserById = async (id: string) => {
+//   const user = await User.findByIdAndDelete(id);
+
+//   if (!user) {
+//     throw new AppError(httpStatus.NOT_FOUND, "User not found");
+//   }
+
+//   return user;
+// };
+
+const deleteUserById = async (
+  id: string,
+  decodedToken: JwtPayload
+) => {
+
+  const user = await User.findById(id);
 
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(404, "User not found");
   }
+
+  if (decodedToken.role === Role.ADMIN) {
+
+    if (user.role === Role.SUPER_ADMIN) {
+      throw new AppError(403, "Not allowed");
+    }
+
+    if (user.department !== decodedToken.department) {
+      throw new AppError(
+        403,
+        "You cannot delete users from another department"
+      );
+    }
+  }
+
+  await User.findByIdAndDelete(id);
 
   return user;
 };
