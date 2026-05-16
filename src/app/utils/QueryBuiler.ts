@@ -105,7 +105,7 @@ export class QueryBuilder<T> {
     this.filterQuery = { ...filter };
 
     this.modelQuery = this.modelQuery.find(this.filterQuery);
-
+console.log("FILTER METHOD QUERY:", this.query);
     return this;
   }
 

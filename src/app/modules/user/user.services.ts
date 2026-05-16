@@ -221,7 +221,8 @@ const getAllUsers = async (
           },
     };
   });
-
+console.log("FILTER BEFORE QUERY:", filter);
+console.log("REQ QUERY:", query);
   return { data: usersWithWallet, meta };
 };
 
