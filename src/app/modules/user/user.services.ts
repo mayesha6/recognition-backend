@@ -167,8 +167,6 @@ const getAllUsers = async (
   decodedToken: JwtPayload
 ) => {
 
-  const { searchTerm, ...filterData } = query;
-
   const filter: any = {};
 
   // =====================================
@@ -178,36 +176,18 @@ const getAllUsers = async (
     filter.department = decodedToken.department;
   }
 
-  // =====================================
-  // 🎯 Filtering
-  // =====================================
-  Object.entries(filterData).forEach(([key, value]) => {
-    if (userFilterableFields.includes(key)) {
-      filter[key] = value;
-    }
-  });
+  const queryBuilder = new QueryBuilder(User.find(filter), query);
 
-  let mongoQuery = User.find(filter);
-
-  // =====================================
-  // 🔎 Searching (name + email)
-  // =====================================
-  if (searchTerm) {
-    mongoQuery = mongoQuery.find({
-      $or: userSearchableFields.map((field) => ({
-        [field]: { $regex: searchTerm, $options: "i" },
-      })),
-    });
-  }
-
-  const queryBuilder = new QueryBuilder(mongoQuery, query)
+  const usersData = queryBuilder
+    .filter()
+    .search(userSearchableFields)
     .sort()
     .fields()
     .paginate();
 
   const [data, meta] = await Promise.all([
-    queryBuilder.build(),
-    queryBuilder.getMeta(),
+    usersData.build(),
+    usersData.getMeta(),
   ]);
 
   return { data, meta };
