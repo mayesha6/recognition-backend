@@ -149,7 +149,7 @@ const sendRecognition = async (
     );
 
     // Prevent using another user's message
-    if (aiMessage.user.toString() !== senderId) {
+    if (aiMessage.user.toString() !== senderId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
     }
   } else {
