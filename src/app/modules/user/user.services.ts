@@ -166,14 +166,21 @@ const getAllUsers = async (
   query: Record<string, string>,
   decodedToken: JwtPayload
 ) => {
-
   const filter: any = {};
 
   // =====================================
-  // 🔐 Department Restriction
+  // 🔐 ROLE BASED ACCESS CONTROL
   // =====================================
+
   if (decodedToken.role === Role.ADMIN) {
+    // ADMIN can only see same department users
     filter.department = decodedToken.department;
+  }
+
+  // SUPER_ADMIN = no filter (sees everything)
+  // USER = optionally restrict (if needed)
+  if (decodedToken.role === Role.USER) {
+    filter._id = decodedToken.userId; // only self
   }
 
   const queryBuilder = new QueryBuilder(User.find(filter), query);
@@ -191,7 +198,7 @@ const getAllUsers = async (
   ]);
 
   // =====================================
-  // 💰 ADD WALLET (FIXED PART)
+  // 💰 WALLET ATTACH (optional)
   // =====================================
   const { year, quarter } = getCurrentQuarter();
 
@@ -221,8 +228,7 @@ const getAllUsers = async (
           },
     };
   });
-console.log("FILTER BEFORE QUERY:", filter);
-console.log("REQ QUERY:", query);
+
   return { data: usersWithWallet, meta };
 };
 
