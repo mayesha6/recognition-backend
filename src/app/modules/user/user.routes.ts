@@ -12,7 +12,7 @@ const router = Router();
 router.post("/register", UserControllers.createUser);
 router.get(
   "/all-users",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.USER),
   UserControllers.getAllUsers
 );
 router.get("/me", checkAuth(...Object.values(Role)), UserControllers.getMe);
