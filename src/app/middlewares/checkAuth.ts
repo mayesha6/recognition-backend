@@ -23,13 +23,11 @@ export const checkAuth = (...authRoles: string[]) => async (req: Request, res: R
             throw new AppError(401, "No Token Recieved")
         }
 
-        let verifiedToken;
+        let verifiedToken: JwtPayload;
 
         try {
             verifiedToken = verifyToken(accessToken, envVars.JWT_ACCESS_SECRET) as JwtPayload;
         } catch (error: any) {
-            console.log("JWT Error:", error.message);
-
             if (error.name === "TokenExpiredError") {
                 return next(new AppError(401, "Token expired"));
             }
@@ -51,10 +49,25 @@ export const checkAuth = (...authRoles: string[]) => async (req: Request, res: R
             throw new AppError(httpStatus.BAD_REQUEST, "User is deleted")
         }
 
-        if (!verifiedToken?.role || !authRoles.includes(verifiedToken.role)) {
-            return next(new AppError(403, "You are not permitted to view this route"));
+        // if (!verifiedToken?.role || !authRoles.includes(verifiedToken.role)) {
+        //     return next(new AppError(403, "You are not permitted to view this route"));
+        // }
+        // req.user = verifiedToken
+
+        // 🔥 ROLE CHECK
+        if (!authRoles.includes(isUserExist.role)) {
+            return next(
+                new AppError(403, "You are not permitted to view this route")
+            );
         }
-        req.user = verifiedToken
+
+        // 🔥 Attach fresh user data
+        req.user = {
+            userId: isUserExist._id,
+            email: isUserExist.email,
+            role: isUserExist.role,
+            department: isUserExist.department,
+        };
         next()
 
     } catch (error) {
