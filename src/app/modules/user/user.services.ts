@@ -2,7 +2,7 @@
 import httpStatus from "http-status-codes";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
-import { AccountStatus, AccountType, Department, IUser, Role } from "./user.interface";
+import { AccountStatus, AccountType, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import { userSearchableFields } from "./user.constant";
 import { QueryBuilder } from "../../utils/QueryBuiler";
@@ -44,7 +44,7 @@ const createUser = async (payload: Partial<IUser>) => {
     role,
     status,
     ...rest,
-    department: rest.department || Department.Operations,
+    department: rest.department,
   });
 
   if (!user) {

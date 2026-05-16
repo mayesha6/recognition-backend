@@ -27,18 +27,6 @@ export enum IsActive {
   INACTIVE = "INACTIVE",
   BLOCKED = "BLOCKED",
 }
-export enum Department {
-  Sales = "Sales",
-  Marketing = "Marketing",
-  FinanceAndAccounting = "Finance & Accounting",
-  Operations = "Operations",
-  HumanResources = "Human Resources (HR)",
-  InformationTechnology = "Information Technology (IT)",
-  CustomerService = "Customer Service",
-  ResearchAndDevelopment = "Research & Development (R&D)",
-  LegalRiskAndCompliance = "Legal, Risk & Compliance",
-  Administration = "Administration"
-}
 
 export interface IUser {
   _id?: Types.ObjectId;
