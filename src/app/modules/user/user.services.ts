@@ -190,7 +190,39 @@ const getAllUsers = async (
     usersData.getMeta(),
   ]);
 
-  return { data, meta };
+  // =====================================
+  // 💰 ADD WALLET (FIXED PART)
+  // =====================================
+  const { year, quarter } = getCurrentQuarter();
+
+  const userIds = data.map((user: any) => user._id);
+
+  const wallets = await Wallet.find({
+    user: { $in: userIds },
+    year,
+    quarter,
+  });
+
+  const usersWithWallet = data.map((user: any) => {
+    const wallet = wallets.find(
+      (w: any) => w.user.toString() === user._id.toString()
+    );
+
+    return {
+      ...user,
+      wallet: wallet
+        ? {
+            pointsBalance: wallet.pointsBalance,
+            pointsAllocated: wallet.pointsAllocated,
+          }
+        : {
+            pointsBalance: 0,
+            pointsAllocated: 0,
+          },
+    };
+  });
+
+  return { data: usersWithWallet, meta };
 };
 
 const getMe = async (userId: string) => {
