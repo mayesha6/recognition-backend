@@ -180,7 +180,7 @@ const getAllUsers = async (
   // SUPER_ADMIN = no filter (sees everything)
   // USER = optionally restrict (if needed)
   if (decodedToken.role === Role.USER) {
-    filter._id = decodedToken.userId; // only self
+    filter.role = Role.USER; // only self
   }
 
   const queryBuilder = new QueryBuilder(User.find(filter), query);
