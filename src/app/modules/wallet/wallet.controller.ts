@@ -48,7 +48,7 @@ const resetPoints = catchAsync(async (req, res) => {
 
   let department;
 
-  if (decoded.role === "ADMIN") {
+  if (decoded.role === "ADMIN" || decoded.role === "SUPER_ADMIN") {
     department = decoded.department;
   }
 
