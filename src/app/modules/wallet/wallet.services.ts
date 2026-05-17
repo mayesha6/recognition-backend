@@ -73,22 +73,32 @@ const resetPoints = async (department?: string) => {
 
     const { year, quarter } = getCurrentQuarter();
 
-    let userFilter: any = {};
+    let userIds: any[] = [];
 
     if (department) {
       const users = await User.find({ department })
         .select("_id")
         .session(session);
 
-      userFilter = { user: { $in: users.map(u => u._id) } };
+      userIds = users.map(u => u._id);
+    }
+
+    // 🚨 IMPORTANT GUARD
+    if (department && userIds.length === 0) {
+      throw new AppError(404, "No users found in this department");
+    }
+
+    const filter: any = {
+      year,
+      quarter
+    };
+
+    if (department) {
+      filter.user = { $in: userIds };
     }
 
     await Wallet.updateMany(
-      {
-        year,
-        quarter,
-        ...userFilter
-      },
+      filter,
       {
         $set: {
           pointsAllocated: 0,
