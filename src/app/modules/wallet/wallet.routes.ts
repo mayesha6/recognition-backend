@@ -14,4 +14,15 @@ router.post(
     checkAuth("ADMIN", "SUPER_ADMIN"),
     WalletController.distributePoints
 )
+router.post(
+  "/reset",
+  checkAuth("ADMIN", "SUPER_ADMIN"),
+  WalletController.resetPoints
+);
+
+router.post(
+  "/set-user-points",
+  checkAuth("ADMIN", "SUPER_ADMIN"),
+  WalletController.setUserPoints
+);
 export const WalletRoutes = router;
