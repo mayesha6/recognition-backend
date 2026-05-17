@@ -73,31 +73,29 @@ const resetPoints = async (department?: string) => {
 
     const { year, quarter } = getCurrentQuarter();
 
-    let userIds: any[] = [];
-
-    if (department) {
-      const users = await User.find({ department })
-        .select("_id")
-        .session(session);
-
-      userIds = users.map(u => u._id);
-    }
-
-    // 🚨 IMPORTANT GUARD
-    if (department && userIds.length === 0) {
-      throw new AppError(404, "No users found in this department");
-    }
-
     const filter: any = {
       year,
       quarter
     };
 
     if (department) {
+
+      const normalizedDept = department.toLowerCase();
+
+      const users = await User.find({
+        department: normalizedDept
+      }).select("_id");
+
+      const userIds = users.map(u => u._id);
+
+      if (userIds.length === 0) {
+        throw new AppError(404, "No users found in this department");
+      }
+
       filter.user = { $in: userIds };
     }
 
-    await Wallet.updateMany(
+    const result = await Wallet.updateMany(
       filter,
       {
         $set: {
@@ -108,6 +106,8 @@ const resetPoints = async (department?: string) => {
       },
       { session }
     );
+
+    console.log("RESET RESULT:", result);
 
     await session.commitTransaction();
     return true;
