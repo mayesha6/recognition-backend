@@ -46,17 +46,18 @@ const resetPoints = catchAsync(async (req, res) => {
 
   const decoded = req.user as JwtPayload;
 
-  let department;
+  const department =
+    decoded.role === "ADMIN" || decoded.role === "SUPER_ADMIN"
+      ? decoded.department
+      : req.body.department; // 👈 allow manual input
 
-  if (decoded.role === "ADMIN" || decoded.role === "SUPER_ADMIN") {
-    department = decoded.department;
-  }
+  console.log("FINAL DEPARTMENT:", department);
 
   await WalletServices.resetPoints(department);
 
   sendResponse(res, {
     success: true,
-    statusCode:  httpStatus.OK,
+    statusCode: 200,
     message: "Points reset successfully",
     data: null
   });
