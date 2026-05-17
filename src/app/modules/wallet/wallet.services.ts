@@ -87,7 +87,8 @@ const resetPoints = async (department?: string) => {
       }).select("_id");
 
       const userIds = users.map(u => u._id);
-
+    console.log("USERS:", users);
+console.log("USER IDS:", userIds);
       if (userIds.length === 0) {
         throw new AppError(404, "No users found in this department");
       }
@@ -107,6 +108,9 @@ const resetPoints = async (department?: string) => {
       { session }
     );
 
+
+console.log("FILTER:", filter);
+console.log("RESULT:", result);
     console.log("RESET RESULT:", result);
 
     await session.commitTransaction();
