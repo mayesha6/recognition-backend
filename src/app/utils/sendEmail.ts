@@ -54,6 +54,7 @@ export const sendEmail = async ({
                 contentType: attachment.contentType
             }))
         })
+        console.log("Email sent successfully:", info.messageId);
 
     } catch (error: any) {
         console.log("email sending error", error.message);

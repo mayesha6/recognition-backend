@@ -51,6 +51,21 @@ const createUser = async (payload: Partial<IUser>) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Failed to register user");
   }
 
+if (accountType === AccountType.ORGANIZATION) {
+
+  await sendEmail({
+    to: envVars.EMAIL_SENDER.SMTP_FROM, 
+    subject: `New Organization Registration - ${user.name}`,
+    templateName: "organizationRequest",
+    templateData: {
+      applicantName: user.name,
+      applicantEmail: user.email,
+      department: user.department,
+      senderName: "System Notification"
+    },
+  });
+}
+
   const { quarter, year } = getCurrentQuarter()
 
   const wallet = await Wallet.create({
