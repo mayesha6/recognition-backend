@@ -83,9 +83,11 @@ const resetPoints = async (department?: string) => {
       const normalizedDept = department.toLowerCase();
 
       const users = await User.find({
-        department: normalizedDept
+        department
       }).select("_id");
-
+if (!users.length) {
+  throw new AppError(404, "No users found in this department");
+}
       const userIds = users.map(u => u._id);
     console.log("USERS:", users);
 console.log("USER IDS:", userIds);
