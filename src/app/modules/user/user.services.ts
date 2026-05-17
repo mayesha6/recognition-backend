@@ -358,12 +358,12 @@ const updateUser = async (
       );
     }
 
-    if (payload.department) {
-      throw new AppError(
-        403,
-        "Admin cannot change department"
-      );
-    }
+    // if (payload.department) {
+    //   throw new AppError(
+    //     403,
+    //     "Admin cannot change department"
+    //   );
+    // }
   }
 
   const updatedUser = await User.findByIdAndUpdate(
