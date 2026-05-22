@@ -13,11 +13,10 @@ import { AiMessengerService } from "../aiMessenger/aiMessenger.service"
 import { AiMessage } from "../aiMessenger/aiMessage.model"
 import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValues"
 
-
 // const sendRecognition = async (
 //   senderEmail: string,
-//   senderId: string, // pass userId from controller
-//   payload: any
+//   senderId: string,
+//   payload: IRecognition
 // ) => {
 //   const {
 //     receiverEmail,
@@ -27,15 +26,47 @@ import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValu
 //     image
 //   } = payload;
 
-//   const aiMessage = await AiMessage.findById(messageId);
+//   let aiMessage;
 
-//   if (!aiMessage) {
-//     throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
-//   }
+//   if (messageId) {
+//     // Use exact AI message if messageId is provided
+//     aiMessage = await AiMessage.findById(messageId);
 
-//   // ownership check
-//   if (aiMessage.user.toString() !== senderId) {
-//     throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
+//     if (!aiMessage) {
+//       throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
+//     }
+//     console.log("AI message found with provided messageId:", aiMessage);
+//     console.log(
+//       "Using specified AI message:",
+//       "aiMessage.user =", aiMessage.user.toString(),
+//       "senderId =", senderId,
+//       "messageId =", messageId
+//     );
+
+//     // Prevent using another user's message
+//     if (aiMessage.user.toString() !== senderId.toString()) {
+//       throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
+//     }
+//   } else {
+//     // Fallback to latest pending AI message
+//     aiMessage = await AiMessage.findOne({
+//       user: senderId,
+//       status: RecognitionStatus.PENDING
+//     }).sort({ createdAt: -1 });
+
+//     if (!aiMessage) {
+//       throw new AppError(
+//         httpStatus.NOT_FOUND,
+//         "No pending AI message found for this user"
+//       );
+//     }
+
+//     console.log(
+//       "Using latest pending AI message:",
+//       "aiMessage.user =", aiMessage.user.toString(),
+//       "senderId =", senderId,
+//       "messageId =", aiMessage._id.toString()
+//     );
 //   }
 
 //   if (aiMessage.status === RecognitionStatus.SENT) {
@@ -43,23 +74,46 @@ import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValu
 //   }
 
 //   if (senderEmail === receiverEmail) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself");
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "You cannot send recognition to yourself"
+//     );
 //   }
 
 //   const sender = await User.findOne({ email: senderEmail });
-//   if (!sender) throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
+//   if (!sender) {
+//     throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
+//   }
 
 //   const receiver = await User.findOne({ email: receiverEmail });
-//   if (!receiver) throw new AppError(httpStatus.NOT_FOUND, "Receiver not found");
+//   if (!receiver) {
+//     throw new AppError(httpStatus.NOT_FOUND, "Receiver not found");
+//   }
 
 //   const { year, quarter } = getCurrentQuarter();
 
 //   const senderWallet = await Wallet.findOne({ user: sender._id, year, quarter });
-//   if (!senderWallet) throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found");
-//   if (senderWallet.pointsBalance < points) throw new AppError(httpStatus.BAD_REQUEST, "Not enough points");
+//   if (!senderWallet) {
+//     throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found");
+//   }
+
+//   if (senderWallet.pointsBalance < points) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Not enough points");
+//   }
 
 //   const receiverWallet = await Wallet.findOne({ user: receiver._id, year, quarter });
-//   if (!receiverWallet) throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
+//   if (!receiverWallet) {
+//     throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
+//   }
+
+//   if (aiMessage.department !== receiver.department) {
+//   throw new AppError(
+//     httpStatus.BAD_REQUEST,
+//     "Receiver department does not match the recognition department"
+//   );
+// }
+
+// console.log(aiMessage.department, receiver.department)
 
 //   senderWallet.pointsBalance -= points;
 //   senderWallet.pointsUsed += points;
@@ -68,13 +122,18 @@ import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValu
 //   await senderWallet.save();
 //   await receiverWallet.save();
 
+//   const recognitionValues = normalizeRecognitionValues(
+//   aiMessage.recognition_values
+// );
+
 //   const recognition = await Recognition.create({
 //     senderEmail,
 //     receiverEmail,
 //     department: aiMessage.department,
+//     // department: receiver.department,
 //     category: aiMessage.category,
 //     tone: aiMessage.tone,
-//     recognition_values: aiMessage.recognition_values,
+//     recognition_values: recognitionValues,
 //     points,
 //     message: aiMessage.generated_message,
 //     additionalMessage,
@@ -108,7 +167,6 @@ import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValu
 //         image
 //       }
 //     });
-
 //   } catch {
 //     recognition.status = RecognitionStatus.FAILED;
 //     await recognition.save();
@@ -133,27 +191,24 @@ const sendRecognition = async (
 
   let aiMessage;
 
+  // =========================
+  // FIND AI MESSAGE
+  // =========================
   if (messageId) {
-    // Use exact AI message if messageId is provided
     aiMessage = await AiMessage.findById(messageId);
 
     if (!aiMessage) {
       throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
     }
-    console.log("AI message found with provided messageId:", aiMessage);
-    console.log(
-      "Using specified AI message:",
-      "aiMessage.user =", aiMessage.user.toString(),
-      "senderId =", senderId,
-      "messageId =", messageId
-    );
 
     // Prevent using another user's message
     if (aiMessage.user.toString() !== senderId.toString()) {
-      throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message usage");
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Unauthorized message usage"
+      );
     }
   } else {
-    // Fallback to latest pending AI message
     aiMessage = await AiMessage.findOne({
       user: senderId,
       status: RecognitionStatus.PENDING
@@ -165,19 +220,21 @@ const sendRecognition = async (
         "No pending AI message found for this user"
       );
     }
+  }
 
-    console.log(
-      "Using latest pending AI message:",
-      "aiMessage.user =", aiMessage.user.toString(),
-      "senderId =", senderId,
-      "messageId =", aiMessage._id.toString()
+  // =========================
+  // ALREADY SENT CHECK
+  // =========================
+  if (aiMessage.status === RecognitionStatus.SENT) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Recognition already sent"
     );
   }
 
-  if (aiMessage.status === RecognitionStatus.SENT) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Recognition already sent");
-  }
-
+  // =========================
+  // SELF SEND CHECK
+  // =========================
   if (senderEmail === receiverEmail) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -185,57 +242,122 @@ const sendRecognition = async (
     );
   }
 
+  // =========================
+  // FIND SENDER
+  // =========================
   const sender = await User.findOne({ email: senderEmail });
+
   if (!sender) {
-    throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Sender not found"
+    );
   }
 
-  const receiver = await User.findOne({ email: receiverEmail });
-  if (!receiver) {
-    throw new AppError(httpStatus.NOT_FOUND, "Receiver not found");
-  }
+  // =========================
+  // FIND RECEIVER (OPTIONAL)
+  // =========================
+  const receiver = await User.findOne({
+    email: receiverEmail
+  });
 
+  // Default values for non-registered user
+  let receiverDepartment = "Non-registered";
+  let receiverWallet = null;
+
+  // =========================
+  // QUARTER
+  // =========================
   const { year, quarter } = getCurrentQuarter();
 
-  const senderWallet = await Wallet.findOne({ user: sender._id, year, quarter });
+  // =========================
+  // SENDER WALLET
+  // =========================
+  const senderWallet = await Wallet.findOne({
+    user: sender._id,
+    year,
+    quarter
+  });
+
   if (!senderWallet) {
-    throw new AppError(httpStatus.NOT_FOUND, "Sender wallet not found");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Sender wallet not found"
+    );
   }
 
+  // =========================
+  // POINT BALANCE CHECK
+  // =========================
   if (senderWallet.pointsBalance < points) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Not enough points");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Not enough points"
+    );
   }
 
-  const receiverWallet = await Wallet.findOne({ user: receiver._id, year, quarter });
-  if (!receiverWallet) {
-    throw new AppError(httpStatus.NOT_FOUND, "Receiver wallet not found");
+  // =========================
+  // REGISTERED USER LOGIC
+  // =========================
+  if (receiver) {
+    receiverDepartment = receiver.department;
+
+    // Department validation
+    if (aiMessage.department !== receiver.department) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Receiver department does not match the recognition department"
+      );
+    }
+
+    receiverWallet = await Wallet.findOne({
+      user: receiver._id,
+      year,
+      quarter
+    });
+
+    if (!receiverWallet) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "Receiver wallet not found"
+      );
+    }
   }
 
-  if (aiMessage.department !== receiver.department) {
-  throw new AppError(
-    httpStatus.BAD_REQUEST,
-    "Receiver department does not match the recognition department"
-  );
-}
-
-console.log(aiMessage.department, receiver.department)
-
+  // =========================
+  // UPDATE WALLET
+  // =========================
   senderWallet.pointsBalance -= points;
   senderWallet.pointsUsed += points;
-  receiverWallet.pointsBalance += points;
+
+  // Only if registered user
+  if (receiverWallet) {
+    receiverWallet.pointsBalance += points;
+  }
 
   await senderWallet.save();
-  await receiverWallet.save();
 
+  if (receiverWallet) {
+    await receiverWallet.save();
+  }
+
+  // =========================
+  // NORMALIZE VALUES
+  // =========================
   const recognitionValues = normalizeRecognitionValues(
-  aiMessage.recognition_values
-);
+    aiMessage.recognition_values
+  );
 
+  // =========================
+  // CREATE RECOGNITION
+  // =========================
   const recognition = await Recognition.create({
     senderEmail,
     receiverEmail,
-    department: aiMessage.department,
-    // department: receiver.department,
+
+    // Non-registered হলে এইটা হবে
+    department: receiverDepartment,
+
     category: aiMessage.category,
     tone: aiMessage.tone,
     recognition_values: recognitionValues,
@@ -246,6 +368,9 @@ console.log(aiMessage.department, receiver.department)
     status: RecognitionStatus.SENT
   });
 
+  // =========================
+  // TRANSACTION
+  // =========================
   await PointsTransaction.create({
     senderEmail,
     receiverEmail,
@@ -254,8 +379,12 @@ console.log(aiMessage.department, receiver.department)
     status: "COMPLETED"
   });
 
+  // =========================
+  // EMAIL + AI STATUS
+  // =========================
   try {
     aiMessage.status = RecognitionStatus.SENT;
+
     await aiMessage.save();
 
     await sendEmail({
@@ -265,21 +394,24 @@ console.log(aiMessage.department, receiver.department)
       templateName: "recognition",
       templateData: {
         senderName: sender.name,
-        receiverName: receiver.name,
+
+        // Non-registered user support
+        receiverName: receiver?.name || "User",
+
         message: aiMessage.generated_message,
         additionalMessage: additionalMessage || "",
         points,
         image
       }
     });
-  } catch {
+  } catch (error) {
     recognition.status = RecognitionStatus.FAILED;
+
     await recognition.save();
   }
 
   return recognition;
 };
-
 const getRecognitionHistory = async (
   email: string,
   query: Record<string, string>
