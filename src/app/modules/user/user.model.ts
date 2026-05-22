@@ -19,17 +19,17 @@ const userSchema = new Schema<IUser>({
         enum: Object.values(Role),
         default: Role.USER
     },
-    department: { type: String, required: false },
+    department: { type: String, required: false, default: "Personal Account" },
     accountType: {
         type: String,
         enum: Object.values(AccountType),
         default: AccountType.INDIVIDUAL
     },
-      status: {
-    type: String,
-    enum: Object.values(AccountStatus),
-    default: AccountStatus.APPROVED, // default normal user approved
-  },
+    status: {
+        type: String,
+        enum: Object.values(AccountStatus),
+        default: AccountStatus.APPROVED, // default normal user approved
+    },
 
     picture: { type: String },
     isDeleted: { type: Boolean, default: false },
