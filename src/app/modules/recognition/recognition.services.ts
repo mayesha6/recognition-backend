@@ -262,7 +262,7 @@ const sendRecognition = async (
   });
 
   // Default values for non-registered user
-  let receiverDepartment = "Non-registered";
+  let receiverDepartment = "Non Registered";
   let receiverWallet = null;
 
   // =========================
