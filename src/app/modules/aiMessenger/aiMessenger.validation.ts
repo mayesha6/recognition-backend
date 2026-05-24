@@ -12,5 +12,6 @@ export const regenerateSchema = z.object({
 
 
 export const editMessageSchema = z.object({
+    messageId: z.string({ message: "Message ID is required" }), // <-- Add this
     newMessage: z.string().min(1)
 });
