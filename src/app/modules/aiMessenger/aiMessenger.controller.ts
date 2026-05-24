@@ -46,6 +46,8 @@ const editMessage = catchAsync(async (req: Request, res: Response) => {
     
     // Extract whichever field the frontend sends
     const { messageId, newMessage, message } = req.body;
+    console.log("Token User ID:", userId);
+    console.log("Body Message ID:", messageId);
     const textToSave = newMessage || message;
 
     const updatedMessage = await AiMessengerService.editMessage(
