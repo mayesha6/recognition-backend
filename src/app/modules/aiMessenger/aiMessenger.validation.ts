@@ -12,6 +12,9 @@ export const regenerateSchema = z.object({
 
 
 export const editMessageSchema = z.object({
-    messageId: z.string({ message: "Message ID is required" }), // <-- Add this
-    newMessage: z.string().min(1)
+    messageId: z.string({ message: "Message ID is required" }),
+    newMessage: z.string().optional(),
+    message: z.string().optional()
+}).refine(data => data.newMessage || data.message, {
+    message: "Either 'newMessage' or 'message' is required for editing",
 });

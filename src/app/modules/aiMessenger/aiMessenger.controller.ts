@@ -43,12 +43,15 @@ const regenerate = catchAsync(async (req: Request, res: Response) => {
 const editMessage = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as JwtPayload;
     const userId = user.userId;
-    const { messageId, newMessage } = req.body;
+    
+    // Extract whichever field the frontend sends
+    const { messageId, newMessage, message } = req.body;
+    const textToSave = newMessage || message;
 
     const updatedMessage = await AiMessengerService.editMessage(
         userId,
         messageId,
-        newMessage
+        textToSave
     );
 
     sendResponse(res, {

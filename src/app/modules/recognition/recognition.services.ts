@@ -262,8 +262,10 @@ const sendRecognition = async (
     messageId,
     additionalMessage,
     image,
-    message: customMessage // Extract custom message from payload
+
   } = payload;
+
+  const incomingText = (payload as any).message || (payload as any).newMessage || (payload as any).generated_message;
 
   let aiMessage;
 
@@ -302,8 +304,8 @@ const sendRecognition = async (
   // DETERMINE THE FINAL MESSAGE
   // =========================
   // Prioritize the custom message from the payload if it exists
-  const finalMessage = customMessage && customMessage.trim() !== "" 
-    ? customMessage 
+  const finalMessage = incomingText && incomingText.trim() !== ""
+    ? incomingText
     : aiMessage.generated_message;
 
   // =========================
