@@ -224,7 +224,7 @@ const regenerateMessage = async (
 
 
 const editMessage = async (
-  userId: string,
+  userId: string | Types.ObjectId, // Accept both string and ObjectId
   messageId: string,
   newMessage: string
 ) => {
@@ -234,7 +234,8 @@ const editMessage = async (
     throw new AppError(httpStatus.NOT_FOUND, "No message found to edit");
   }
 
-  if (aiMessage.user.toString() !== userId) {
+  // Convert both to strings for a safe, strict comparison
+  if (aiMessage.user.toString() !== userId.toString()) {
     throw new AppError(httpStatus.FORBIDDEN, "Unauthorized message edit");
   }
 
