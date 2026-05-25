@@ -12,17 +12,17 @@ router.post(
 
 router.get( 
     "/",
-    // checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
+    checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
     ToneController.getTones
 )
 
 router.patch(
-    "/update-tone/:id",
+    "/:id",
     checkAuth("ADMIN", "SUPER_ADMIN"),
     ToneController.updateTone
 )
 router.delete(
-    "/delete-tone/:id",
+    "/:id",
     checkAuth("ADMIN", "SUPER_ADMIN"),
     ToneController.deleteTone
 )
