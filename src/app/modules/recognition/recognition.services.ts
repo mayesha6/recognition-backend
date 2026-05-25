@@ -479,7 +479,7 @@ const sendRecognition = async (
       templateName: "recognition",
       templateData: {
         senderName: sender.name,
-        receiverName: receiver?.name || recipient_name || "User",
+        receiverName: receiver?.name || recipient_name || receiverEmail?.split("@")[0] || "there",
         message: finalMessage, // Use the determined final message
         additionalMessage: additionalMessage || "",
         points,
