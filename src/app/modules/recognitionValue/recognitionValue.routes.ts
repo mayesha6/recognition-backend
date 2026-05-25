@@ -17,12 +17,12 @@ router.get(
 )
 
 router.patch(
-    "/update-recognition-value/:id",
+    "/:id",
     checkAuth("ADMIN", "SUPER_ADMIN"),
     RecognitionValueController.updateRecognitionValue
 )
 router.delete(
-    "/delete-recognition-value/:id",
+    "/:id",
     checkAuth("ADMIN", "SUPER_ADMIN"),
     RecognitionValueController.deleteRecognitionValue
 )

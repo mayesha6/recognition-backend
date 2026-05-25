@@ -9,6 +9,8 @@ import { WalletRoutes } from "../modules/wallet/wallet.routes"
 import { CategoryRoutes } from "../modules/category/category.routes"
 import { AiMessengerRoutes } from "../modules/aiMessenger/aiMessenger.route"
 import { DepartmentRoutes } from "../modules/department/department.routes"
+import { ToneRoutes } from "../modules/tone/tone.routes"
+import { RecognitionValueRoutes } from "../modules/recognitionValue/recognitionValue.routes"
 
 
 export const router = Router()
@@ -49,6 +51,14 @@ const moduleRoutes = [
     {
         path: "/department",
         route: DepartmentRoutes
+    },
+    {
+        path: "/tone",
+        route: ToneRoutes
+    },
+    {
+        path: "/recognition-value",
+        route: RecognitionValueRoutes
     },
     {
         path: "/ai",
