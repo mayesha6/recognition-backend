@@ -262,6 +262,7 @@ const sendRecognition = async (
     messageId,
     additionalMessage,
     image,
+    recipient_name
 
   } = payload;
 
@@ -478,7 +479,7 @@ const sendRecognition = async (
       templateName: "recognition",
       templateData: {
         senderName: sender.name,
-        receiverName: receiver?.name || "User",
+        receiverName: receiver?.name || recipient_name || "User",
         message: finalMessage, // Use the determined final message
         additionalMessage: additionalMessage || "",
         points,

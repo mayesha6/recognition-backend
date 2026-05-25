@@ -42,6 +42,7 @@ export enum RecognitionStatus {
 export interface IRecognition {
   senderEmail: string
   receiverEmail: string
+  recipient_name: string
 
   image:string
   department: string

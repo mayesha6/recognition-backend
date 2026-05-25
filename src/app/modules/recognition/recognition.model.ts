@@ -16,6 +16,9 @@ const recognitionSchema = new Schema<IRecognition>(
       required: true,
       index: true
     },
+    recipient_name: {
+      type: String
+    },
 
     image: {
       type: String,
