@@ -16,7 +16,7 @@ import { getCurrentQuarter } from "../../utils/wallet";
 import { Wallet } from "../wallet/wallet.model";
 
 const createUser = async (payload: Partial<IUser>) => {
-  const { email, password, accountType, ...rest } = payload;
+  const { email, password, accountType, department, ...rest } = payload;
 
   const isUserExist = await User.findOne({ email });
 
@@ -43,8 +43,9 @@ const createUser = async (payload: Partial<IUser>) => {
     accountType,
     role,
     status,
+    department,
     ...rest,
-    department: rest.department,
+    
   });
 
   if (!user) {
@@ -136,47 +137,6 @@ const rejectOrganization = async (userId: string) => {
   return user;
 };
 
-// const getAllUsers = async (query: Record<string, string>) => {
-//   const queryBuilder = new QueryBuilder(User.find(), query);
-//   const usersData = queryBuilder
-//     .filter()
-//     .search(userSearchableFields)
-//     .sort()
-//     .fields()
-//     .paginate();
-
-//   const [data, meta] = await Promise.all([
-//     usersData.build(),
-//     queryBuilder.getMeta(),
-//   ]);
-
-//   const { year, quarter } = getCurrentQuarter();
-
-//   const userIds = data.map((user: any) => user._id);
-
-//   const wallets = await Wallet.find({
-//     user: { $in: userIds },
-//     year,
-//     quarter,
-//   });
-
-//   const usersWithWallet = data.map((user: any) => {
-//     const wallet = wallets.find(
-//       (w: any) => w.user.toString() === user._id.toString()
-//     );
-
-//     return {
-//       ...user.toObject?.() ? user.toObject() : user,
-//       wallet: wallet || null,
-//     };
-//   });
-
-//   return {
-//     data: usersWithWallet,
-//     meta,
-//   };
-// };
-
 const getAllUsers = async (
   query: Record<string, string>,
   decodedToken: JwtPayload
@@ -195,6 +155,7 @@ const getAllUsers = async (
   // SUPER_ADMIN = no filter (sees everything)
   // USER = optionally restrict (if needed)
   if (decodedToken.role === Role.USER) {
+    filter.department = decodedToken.department;
     filter.role = Role.USER; // only self
   }
 
