@@ -51,8 +51,24 @@ const verifyResetOtp = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const resendForgotPasswordOtp = catchAsync(
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    const result = await OTPService.resendForgotPasswordOtp(email);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: result.message,
+      data: null,
+    });
+  }
+);
+
 export const OTPController = {
   verifySignupOtp,
   resendOtp,
-  verifyResetOtp
+  verifyResetOtp,
+  resendForgotPasswordOtp
 };

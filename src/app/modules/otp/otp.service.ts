@@ -105,10 +105,67 @@ const verifyResetOtp = async (email: string, otp: string) => {
   return null;
 };
 
+const resendForgotPasswordOtp = async (email: string) => {
+  // 1️⃣ Check user
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (!user.isVerified) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not verified");
+  }
+
+  if (user.isDeleted) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User is deleted");
+  }
+
+  if (user.isActive === "BLOCKED" || user.isActive === "INACTIVE") {
+    throw new AppError(httpStatus.BAD_REQUEST, `User is ${user.isActive}`);
+  }
+
+  // 2️⃣ Same OTP KEY (VERY IMPORTANT)
+  const redisKey = `otp:reset:${email}`;
+
+  // 3️⃣ Prevent spam resend
+  const existingOtp = await redisClient.get(redisKey);
+
+  if (existingOtp) {
+    throw new AppError(
+      httpStatus.TOO_MANY_REQUESTS,
+      "OTP already sent. Please wait 2 minutes."
+    );
+  }
+
+  // 4️⃣ Generate OTP
+  const otp = generateOtp();
+
+  // 5️⃣ Save OTP (2 min expiry)
+  await redisClient.set(redisKey, otp, {
+    expiration: { type: "EX", value: 120 },
+  });
+
+  // 6️⃣ Send Email
+  await sendEmail({
+    to: email,
+    subject: "Password Reset OTP",
+    templateName: "otp",
+    templateData: {
+      name: user.name,
+      otp,
+    },
+  });
+
+  return {
+    message: "OTP resent successfully",
+  };
+};
 
 export const OTPService = {
     generateOtp,
     verifySignupOtp,
     resendOtp,
-    verifyResetOtp
+    verifyResetOtp,
+    resendForgotPasswordOtp
 }
