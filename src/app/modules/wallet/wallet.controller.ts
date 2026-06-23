@@ -1,113 +1,75 @@
-import { NextFunction, Request, Response } from "express"
-import { catchAsync } from "../../utils/catchAsync"
-import { sendResponse } from "../../utils/sendResponse"
+import { NextFunction, Request, Response } from "express";
+import { catchAsync } from "../../utils/catchAsync";
+import { sendResponse } from "../../utils/sendResponse";
 import httpStatus from "http-status-codes";
 import { WalletServices } from "./wallet.services";
 import { JwtPayload } from "jsonwebtoken";
 import AppError from "../../errorHelpers/AppError";
+import { Role } from "../user/user.interface";
 
-const getWallet = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+const getWallet = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.params.userId;
+  const { year, quarter } = req.body; // Consider moving year/quarter to query params for GET requests
 
-    const userId = req.params.userId
-    const { year, quarter } = req.body
+  const wallet = await WalletServices.getWallet(userId, year, quarter);
 
-    const wallet = await WalletServices.getWallet(userId, year, quarter)
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Wallet retrieved successfully",
+    data: wallet,
+  });
+});
 
-    sendResponse(res, {
+const distributePoints = catchAsync(async (req: Request, res: Response) => {
+  const { department, points } = req.body;
+  const decodedToken = req.user as JwtPayload;
 
-        success: true,
-        statusCode: httpStatus.OK,
-        message: "Wallet retrieve successfully",
-        data: wallet,
-    })
+  const result = await WalletServices.distributePoints(
+    department,
+    points,
+    decodedToken
+  );
 
-})
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Points distributed successfully",
+    data: result,
+  });
+});
 
-const distributePoints = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-
-    const { department, points } = req.body
-
-
-    const result =
-        await WalletServices.distributePoints(
-            department,
-            points
-        )
-
-    sendResponse(res, {
-        success: true,
-        statusCode: httpStatus.OK,
-        message: "Points distributed",
-        data: result
-    })
-
-})
-
-const resetPoints = catchAsync(async (req, res) => {
-  const decoded = req.user as JwtPayload;
-
+const resetPoints = catchAsync(async (req: Request, res: Response) => {
+  const decodedToken = req.user as JwtPayload;
   const requestedDepartment = req.body.department;
 
-  let departmentToReset: string | undefined;
-
-  // 🔥 SUPER ADMIN
-  if (decoded.role === "SUPER_ADMIN") {
-    departmentToReset = requestedDepartment; 
-    // undefined হলে সব reset হবে
-  }
-
-  // 🔥 NORMAL ADMIN
-  else if (decoded.role === "ADMIN") {
-    if (!requestedDepartment) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Department is required");
-    }
-
-    if (requestedDepartment !== decoded.department) {
-      throw new AppError(
-        httpStatus.FORBIDDEN,
-        "You can only reset points for your own department"
-      );
-    }
-
-    departmentToReset = decoded.department;
-  }
-
-  else {
-    throw new AppError(403, "Not authorized");
-  }
-
-  await WalletServices.resetPoints(departmentToReset);
+  const result = await WalletServices.resetPoints(requestedDepartment, decodedToken);
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
     message: "Points reset successfully",
-    data: null
+    data: result,
   });
 });
 
-const setUserPoints = catchAsync(async (req, res) => {
-
+const setUserPoints = catchAsync(async (req: Request, res: Response) => {
   const { email, points } = req.body;
-  const decoded = req.user as JwtPayload;
+  const decodedToken = req.user as JwtPayload;
 
-  const result = await WalletServices.setUserPoints(
-    email,
-    points,
-    decoded
-  );
+  const result = await WalletServices.setUserPoints(email, points, decodedToken);
 
   sendResponse(res, {
     success: true,
-    statusCode:  httpStatus.OK,
-    message: "User points updated",
-    data: result
+    statusCode: httpStatus.OK,
+    message: "User points updated successfully",
+    data: result,
   });
 });
 
 export const WalletController = {
-    getWallet,
-    distributePoints,
-    resetPoints,
-    setUserPoints
+  getWallet,
+  distributePoints,
+  resetPoints,
+  setUserPoints,
 };

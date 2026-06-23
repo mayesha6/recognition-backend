@@ -1,28 +1,32 @@
 import { Router } from "express";
 import { WalletController } from "./wallet.controller";
 import { checkAuth } from "../../middlewares/checkAuth";
+import { Role } from "../user/user.interface"; // Adjust import path if needed
 
 const router = Router();
 
 router.get(
-    "/:userId",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    WalletController.getWallet
-)
+  "/:userId",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN),
+  WalletController.getWallet
+);
+
 router.post(
-    "/distribute",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    WalletController.distributePoints
-)
+  "/distribute",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN),
+  WalletController.distributePoints
+);
+
 router.post(
   "/reset",
-  checkAuth("ADMIN", "SUPER_ADMIN"),
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN), // Usually DAs shouldn't reset entire departments
   WalletController.resetPoints
 );
 
 router.post(
   "/set-user-points",
-  checkAuth("ADMIN", "SUPER_ADMIN"),
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN),
   WalletController.setUserPoints
 );
+
 export const WalletRoutes = router;
