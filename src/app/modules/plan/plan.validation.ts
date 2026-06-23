@@ -20,6 +20,7 @@ export const createPlanZodSchema = z.object({
   features: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
 access: accessSchema.optional(),
+userLimit: z.number().min(1).optional(),
 });
 
 export const updatePlanZodSchema = z.object({
