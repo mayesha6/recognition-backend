@@ -14,6 +14,11 @@ const planSchema = new Schema<IPlan>(
       required: true,
       default: 1, // ডিফল্ট ১ জন (শুধুমাত্র অর্গানাইজেশন এডমিনের জন্য)
     },
+    allocatedPoints: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     price: {
       type: Number,
       required: true,

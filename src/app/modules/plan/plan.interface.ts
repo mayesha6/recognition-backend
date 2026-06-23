@@ -23,4 +23,5 @@ export interface IPlan {
   stripePriceId: string;
   access: IPlanAccess;
   userLimit: number;
+  allocatedPoints: number;
 }
