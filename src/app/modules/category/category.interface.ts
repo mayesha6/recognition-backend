@@ -1,17 +1,8 @@
-import { Types } from "mongoose"
-// export enum CategoryName {
-//   PEER_TO_PEER_RECOGNITION = "PEER_TO_PEER_RECOGNITION",
-//   EVERYDAY_APPRECIATION = "EVERYDAY_APPRECIATION",
-//   THANK_YOU_NOTE = "THANK_YOU_NOTE",
-//   EMPLOYEE_ACCOMPLISHMENTS = "EMPLOYEE_ACCOMPLISHMENTS",
-//   EMERGING_LEADER_RECOGNITION = "EMERGING_LEADER_RECOGNITION",
-//   MANAGER_EXCELLENCE = "MANAGER_EXCELLENCE",
-//   EMPLOYEE_MILESTONES = "EMPLOYEE_MILESTONES",
-//   EMPLOYEE_WELCOME = "EMPLOYEE_WELCOME",
-//   SPECIAL_OCCASSIONS = "SPECIAL_OCCASSIONS",
-// }
+import { Types } from "mongoose";
+
 export interface ICategory {
-  name: string
-  // name: CategoryName
-  images: string[]
+  name: string;
+  images: string[];
+  organizationId?: Types.ObjectId | null;
+  createdBy: Types.ObjectId;
 }
