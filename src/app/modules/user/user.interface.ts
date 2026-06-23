@@ -1,8 +1,10 @@
 import { Types } from "mongoose";
+import { SubscriptionStatus } from "../subscription/subscription.interface";
 
 export enum Role {
   SUPER_ADMIN = "SUPER_ADMIN",
-  ADMIN = "ADMIN",
+  ORGANIZATION_ADMIN = "ORGANIZATION_ADMIN",
+  DEPARTMENT_ADMIN = "DEPARTMENT_ADMIN",
   USER = "USER",
 }
 
@@ -42,6 +44,17 @@ export interface IUser {
   accountType: AccountType;
   status: AccountStatus;
   auths: IAuthProvider[];
+
+  // 🔥 Multi-Tenant Data Isolation
+  organizationId?: Types.ObjectId; // The Root Organization Admin's ID
+  createdBy?: Types.ObjectId;      // Who created this account
+  
+  // 🔥 SaaS Subscription Tracking
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subscriptionStatus?: SubscriptionStatus;
+  currentPlan?: Types.ObjectId;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

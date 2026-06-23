@@ -10,9 +10,14 @@ import { FileTypes, upload } from "../../config/S3Client.config";
 const router = Router();
 
 router.post("/register", UserControllers.createUser);
+router.post(
+  "/create", 
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN),
+  UserControllers.createUser
+);
 router.get(
   "/all-users",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN, Role.USER),
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.SUPER_ADMIN, Role.USER),
   UserControllers.getAllUsers
 );
 router.get("/me", checkAuth(...Object.values(Role)), UserControllers.getMe);
@@ -30,13 +35,13 @@ router.patch(
 );
 router.get(
   "/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.SUPER_ADMIN),
   UserControllers.getSingleUser
 );
 router.patch(
   "/:id",
   validateRequest(updateUserZodSchema),
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.SUPER_ADMIN),
   UserControllers.updateUser
 );
 router.delete(
@@ -46,26 +51,24 @@ router.delete(
 );
 router.patch(
   "/approve/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.SUPER_ADMIN),
   UserControllers.approveOrganization
 );
 router.patch(
   "/reject/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.SUPER_ADMIN),
   UserControllers.rejectOrganization
 );
 
 router.delete(
   "/:id",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN,Role.SUPER_ADMIN),
   UserControllers.deleteUserById
 );
 router.delete(
   "/",
-  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.SUPER_ADMIN),
   UserControllers.deleteAllUsers
 );
-
-
 
 export const UserRoutes = router;

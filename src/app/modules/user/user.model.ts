@@ -1,5 +1,7 @@
 import { model, Schema } from "mongoose";
 import { AccountStatus, AccountType, IAuthProvider, IsActive, IUser, Role } from "./user.interface";
+import { SubscriptionStatus } from "../subscription/subscription.interface";
+import { Types } from "mongoose";
 
 
 const authProviderSchema = new Schema<IAuthProvider>({
@@ -40,6 +42,18 @@ const userSchema = new Schema<IUser>({
     },
     isVerified: { type: Boolean, default: false },
     auths: [authProviderSchema],
+    // 🔥 SaaS & Tenant Fields
+    organizationId: { type: Types.ObjectId, ref: "User", default: null },
+    createdBy: { type: Types.ObjectId, ref: "User", default: null },
+    
+    stripeCustomerId: { type: String, default: null },
+    stripeSubscriptionId: { type: String, default: null },
+    subscriptionStatus: { 
+        type: String, 
+        enum: Object.values(SubscriptionStatus),
+        default: null 
+    },
+    currentPlan: { type: Types.ObjectId, ref: "Plan", default: null }
 }, {
     timestamps: true,
     versionKey: false

@@ -11,7 +11,7 @@ const createUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
 
 
-    const user = await UserServices.createUser(req.body);
+    const user = await UserServices.createUser(req.body, req.user as JwtPayload);
 
     sendResponse(res, {
       success: true,

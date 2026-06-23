@@ -47,6 +47,11 @@ interface EnvConfig {
     S3_BUCKET_NAME: string;
     S3_ENDPOINT: string;
   }
+  STRIPE: {
+    STRIPE_SECRET_KEY: string;
+    STRIPE_PUBLISHABLE_KEY: string;
+    STRIPE_WEBHOOK_SECRET: string;
+  }
   AI_BASE_URL: string;
 }
 
@@ -90,7 +95,10 @@ const loadEnvVariables = (): EnvConfig => {
     "S3_REGION",
     "S3_BUCKET_NAME",
     "S3_ENDPOINT",
-    "AI_BASE_URL"
+    "AI_BASE_URL",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_WEBHOOK_SECRET",
   ];
 
   requiredEnvVariables.forEach((key) => {
@@ -144,6 +152,11 @@ const loadEnvVariables = (): EnvConfig => {
       S3_REGION: process.env.S3_REGION as string,
       S3_BUCKET_NAME: process.env.S3_BUCKET_NAME as string,
       S3_ENDPOINT: process.env.S3_ENDPOINT as string,
+    },
+    STRIPE: {
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY as string,
+      STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY as string,
+      STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET as string,
     },
     AI_BASE_URL: process.env.AI_BASE_URL as string
   };

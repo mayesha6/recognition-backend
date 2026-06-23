@@ -15,11 +15,10 @@ import { redisClient } from "../../config/redis.config";
 import { getCurrentQuarter } from "../../utils/wallet";
 import { Wallet } from "../wallet/wallet.model";
 
-const createUser = async (payload: Partial<IUser>) => {
+const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) => {
   const { email, password, accountType, department, ...rest } = payload;
 
   const isUserExist = await User.findOne({ email });
-
   if (isUserExist) {
     throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
   }
@@ -29,7 +28,30 @@ const createUser = async (payload: Partial<IUser>) => {
     Number(envVars.BCRYPT_SALT_ROUND)
   );
 
-  const role = Role.USER;
+  let role = Role.USER;
+  let organizationId = null;
+  let assignedDepartment = department || "Personal Account";
+
+  // ==========================================
+  // 🔥 MULTI-TENANT USER CREATION LOGIC
+  // ==========================================
+  if (creatorToken) {
+    // ১. Organization Admin যদি কাউকে তৈরি করে
+    if (creatorToken.role === Role.ORGANIZATION_ADMIN) {
+      organizationId = creatorToken.userId;
+      
+      // OA চাইলে DA বা User বানাতে পারে। Payload থেকে role নিবো, না দিলে ডিফল্ট USER
+      if (payload.role === Role.DEPARTMENT_ADMIN) {
+        role = Role.DEPARTMENT_ADMIN;
+      }
+    } 
+    // ২. Department Admin যদি কাউকে তৈরি করে
+    else if (creatorToken.role === Role.DEPARTMENT_ADMIN) {
+      organizationId = creatorToken.organizationId;
+      assignedDepartment = creatorToken.department; // DA শুধু নিজের ডিপার্টমেন্টের ইউজার বানাতে পারবে
+      role = Role.USER; // DA শুধু সাধারণ User বানাতে পারবে
+    }
+  }
 
   // 🔥 STATUS LOGIC
   const status =
@@ -40,34 +62,35 @@ const createUser = async (payload: Partial<IUser>) => {
   const user = await User.create({
     email,
     password: hashedPassword,
-    accountType,
+    accountType: organizationId ? AccountType.INDIVIDUAL : accountType, // If created under OA, it's an individual
     role,
     status,
-    department,
+    department: assignedDepartment,
+    organizationId,
+    createdBy: creatorToken ? creatorToken.userId : null,
     ...rest,
-    
   });
 
   if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, "Failed to register user");
   }
 
-if (accountType === AccountType.ORGANIZATION) {
+  // --- Email & Wallet Logic remain exactly the same as your code ---
+  if (accountType === AccountType.ORGANIZATION && !creatorToken) {
+    await sendEmail({
+      to: envVars.EMAIL_SENDER.SMTP_FROM, 
+      subject: `New Organization Registration - ${user.name}`,
+      templateName: "organizationRequest",
+      templateData: {
+        applicantName: user.name,
+        applicantEmail: user.email,
+        department: user.department,
+        senderName: "System Notification"
+      },
+    });
+  }
 
-  await sendEmail({
-    to: envVars.EMAIL_SENDER.SMTP_FROM, 
-    subject: `New Organization Registration - ${user.name}`,
-    templateName: "organizationRequest",
-    templateData: {
-      applicantName: user.name,
-      applicantEmail: user.email,
-      department: user.department,
-      senderName: "System Notification"
-    },
-  });
-}
-
-  const { quarter, year } = getCurrentQuarter()
+  const { quarter, year } = getCurrentQuarter();
 
   const wallet = await Wallet.create({
     user: user._id,
@@ -75,7 +98,8 @@ if (accountType === AccountType.ORGANIZATION) {
     year,
     pointsAllocated: 0,
     pointsBalance: 0
-  })
+  });
+
   const redisKey = `otp:${email}`;
   const otp = generateOtp();
 
@@ -96,47 +120,6 @@ if (accountType === AccountType.ORGANIZATION) {
   return { wallet, user };
 };
 
-const approveOrganization = async (userId: string) => {
-  const user = await User.findById(userId);
-
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
-
-  if (user.accountType !== AccountType.ORGANIZATION) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Not an organization account");
-  }
-
-  user.status = AccountStatus.APPROVED;
-  user.role = Role.ADMIN;
-
-  await user.save();
-
-  return user;
-};
-
-const rejectOrganization = async (userId: string) => {
-  const user = await User.findById(userId);
-
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
-
-  if (user.accountType !== AccountType.ORGANIZATION) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Only organization accounts can be rejected"
-    );
-  }
-
-  user.status = AccountStatus.REJECTED;
-  user.role = Role.USER; // fallback safe role
-
-  await user.save();
-
-  return user;
-};
-
 const getAllUsers = async (
   query: Record<string, string>,
   decodedToken: JwtPayload
@@ -144,19 +127,32 @@ const getAllUsers = async (
   const filter: any = {};
 
   // =====================================
-  // 🔐 ROLE BASED ACCESS CONTROL
+  // 🔐 STRICT ROLE BASED DATA ISOLATION
   // =====================================
 
-  if (decodedToken.role === Role.ADMIN) {
-    // ADMIN can only see same department users
+  // 1. SUPER_ADMIN: সব দেখতে পারবে, তবে চাইলে নির্দিষ্ট organization ফিল্টার করতে পারবে
+  if (decodedToken.role === Role.SUPER_ADMIN) {
+    if (query.organizationId) {
+      filter.organizationId = query.organizationId;
+    }
+  }
+
+  // 2. ORGANIZATION_ADMIN: শুধুমাত্র নিজের অর্গানাইজেশনের ইউজার এবং DA দেখতে পারবে
+  if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
+    filter.organizationId = decodedToken.userId; 
+  }
+
+  // 3. DEPARTMENT_ADMIN: নিজের অর্গানাইজেশনের এবং শুধুমাত্র নিজের ডিপার্টমেন্টের ইউজারদের দেখতে পারবে
+  if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
+    filter.organizationId = decodedToken.organizationId;
     filter.department = decodedToken.department;
   }
 
-  // SUPER_ADMIN = no filter (sees everything)
-  // USER = optionally restrict (if needed)
+  // 4. REGULAR USER: নিজের অর্গানাইজেশনের এবং নিজের ডিপার্টমেন্টের অন্য ইউজারদের দেখতে পারবে
   if (decodedToken.role === Role.USER) {
+    filter.organizationId = decodedToken.organizationId;
     filter.department = decodedToken.department;
-    filter.role = Role.USER; // only self
+    filter.role = Role.USER; // সাধারণ ইউজারদের Admin দের দেখার দরকার নেই
   }
 
   const queryBuilder = new QueryBuilder(User.find(filter), query);
@@ -173,11 +169,8 @@ const getAllUsers = async (
     usersData.getMeta(),
   ]);
 
-  // =====================================
-  // 💰 WALLET ATTACH (optional)
-  // =====================================
+  // --- Wallet Attachment Logic remains exactly the same ---
   const { year, quarter } = getCurrentQuarter();
-
   const userIds = data.map((user: any) => user._id);
 
   const wallets = await Wallet.find({
@@ -207,6 +200,49 @@ const getAllUsers = async (
 
   return { data: usersWithWallet, meta };
 };
+
+const approveOrganization = async (userId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.accountType !== AccountType.ORGANIZATION) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Not an organization account");
+  }
+
+  user.status = AccountStatus.APPROVED;
+  user.role = Role.ORGANIZATION_ADMIN;
+
+  await user.save();
+
+  return user;
+};
+
+const rejectOrganization = async (userId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.accountType !== AccountType.ORGANIZATION) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Only organization accounts can be rejected"
+    );
+  }
+
+  user.status = AccountStatus.REJECTED;
+  user.role = Role.USER; // fallback safe role
+
+  await user.save();
+
+  return user;
+};
+
+
 
 const getMe = async (userId: string) => {
   const user = await User.findById(userId).select("-password");
@@ -252,42 +288,6 @@ const getSingleUser = async (id: string) => {
   };
 };
 
-// const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken: JwtPayload) => {
-
-//   if (decodedToken.role === Role.USER) {
-//     if (userId !== decodedToken.userId) {
-//       throw new AppError(401, "You are not authorized")
-//     }
-//   }
-
-//   const ifUserExist = await User.findById(userId);
-
-//   if (!ifUserExist) {
-//     throw new AppError(httpStatus.NOT_FOUND, "User Not Found")
-//   }
-
-//   if (decodedToken.role === Role.ADMIN && ifUserExist.role === Role.SUPER_ADMIN) {
-//     throw new AppError(401, "You are not authorized")
-//   }
-
-//   if (payload.role) {
-//     if (decodedToken.role === Role.USER) {
-//       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-//     }
-
-//   }
-
-//   if (payload.isActive || payload.isDeleted || payload.isVerified) {
-//     if (decodedToken.role === Role.USER) {
-//       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-//     }
-//   }
-
-//   const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
-
-//   return newUpdatedUser
-// }
-
 const updateUser = async (
   userId: string,
   payload: Partial<IUser>,
@@ -306,7 +306,7 @@ const updateUser = async (
   }
 
   // 🔥 ADMIN restrictions
-  if (decodedToken.role === Role.ADMIN) {
+  if (decodedToken.role === Role.ORGANIZATION_ADMIN || decodedToken.role === Role.DEPARTMENT_ADMIN) {
 
     if (targetUser.role === Role.SUPER_ADMIN) {
       throw new AppError(403, "Not authorized");
@@ -339,63 +339,6 @@ const getS3KeyFromUrl = (url: string) => {
   const parts = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`);
   return parts[1] ?? "";
 };
-
-// const updateMyProfile = async ({
-//   userId,
-//   payload,
-//   decodedToken,
-//   file,
-//   oldPassword,
-//   newPassword,
-//   confirmPassword,
-// }: any) => {
-//   const user = await User.findById(userId);
-//   if (!user) throw new AppError(404, "User not found");
-
-//   // Authorization check
-//   if (decodedToken.role === "USER" && decodedToken.userId !== userId) {
-//     throw new AppError(403, "You are not authorized");
-//   }
-
-//   // Handle password change if requested
-//   if (oldPassword || newPassword || confirmPassword) {
-//     if (!oldPassword || !newPassword || !confirmPassword) {
-//       throw new AppError(400, "All password fields are required");
-//     }
-
-//     if (newPassword !== confirmPassword) {
-//       throw new AppError(400, "Passwords do not match");
-//     }
-
-//     const isOldPasswordMatch = await bcryptjs.compare(oldPassword, user.password as string);
-//     if (!isOldPasswordMatch) {
-//       throw new AppError(httpStatus.UNAUTHORIZED, "Old password does not match");
-//     }
-
-//     payload.password = await bcryptjs.hash(
-//       newPassword,
-//       Number(envVars.BCRYPT_SALT_ROUND || 10)
-//     );
-//   }
-
-//   // Handle profile picture update
-//   if (file) {
-//     if (user.picture) {
-//       const oldKey = getS3KeyFromUrl(user.picture);
-//       if (oldKey) await deleteFileFromS3(oldKey);
-//     }
-//     payload.picture = file.location;
-//   }
-
-//   // Update user
-//   const updated = await User.findByIdAndUpdate(userId, payload, {
-//     returnDocument: "after",
-//     runValidators: true,
-//   });
-
-//   return updated;
-// };
-
 
 const updateMyProfile = async ({
   userId,
@@ -491,16 +434,6 @@ const deleteOwnAccount = async (userId: string) => {
   return { message: "Your account has been deleted successfully" };
 };
 
-// const deleteUserById = async (id: string) => {
-//   const user = await User.findByIdAndDelete(id);
-
-//   if (!user) {
-//     throw new AppError(httpStatus.NOT_FOUND, "User not found");
-//   }
-
-//   return user;
-// };
-
 const deleteUserById = async (
   id: string,
   decodedToken: JwtPayload
@@ -512,7 +445,7 @@ const deleteUserById = async (
     throw new AppError(404, "User not found");
   }
 
-  if (decodedToken.role === Role.ADMIN) {
+  if (decodedToken.role === Role.ORGANIZATION_ADMIN || decodedToken.role === Role.DEPARTMENT_ADMIN) {
 
     if (user.role === Role.SUPER_ADMIN) {
       throw new AppError(403, "Not allowed");
