@@ -1,58 +1,34 @@
-import { Schema, model } from "mongoose"
-import { IRecognition } from "./recognition.interface"
+// recognition.model.ts
+import { Schema, model, Types } from "mongoose";
+import { IRecognition, RecognitionStatus } from "./recognition.interface";
 
 const recognitionSchema = new Schema<IRecognition>(
   {
-    senderEmail: {
+    senderEmail: { type: String, required: true, index: true },
+    receiverEmail: { type: String, required: true, index: true },
+    recipient_name: { type: String },
+    image: { type: String, required: true },
+    recognition_values: [{ type: String, required: true }],
+    points: { type: Number, required: true },
+    message: { type: String, required: true },
+    messageId: { type: String, required: false },
+    additionalMessage: { type: String, required: false },
+    department: { type: String },
+    category: { type: String },
+    tone: { type: String },
+    status: {
       type: String,
-      required: true,
-      index: true
+      enum: Object.values(RecognitionStatus),
+      default: RecognitionStatus.PENDING
     },
-
-    receiverEmail: {
-      type: String,
-      required: true,
-      index: true
-    },
-    recipient_name: {
-      type: String
-    },
-
-    image: {
-      type: String,
-      required: true
-    },
-
-    recognition_values: [{
-      type: String,
-      required: true
-    }],
-
-    points: {
-      type: Number,
-      required: true
-    },
-
-    message: {
-      type: String,
-      required: true
-    },
-    messageId: {
-      type: String,
-      required: false
-    },
-    additionalMessage: {
-      type: String,
-      required: false
-    },
-
+    // 🔥 SaaS Tracking
+    organizationId: {
+      type: Types.ObjectId,
+      ref: "User",
+      default: null
+    }
   },
-  {
-    timestamps: true
-  }
-)
+  { timestamps: true }
+);
 
-export const Recognition = model<IRecognition>(
-  "Recognition",
-  recognitionSchema
-)
+export const Recognition = model<IRecognition>("Recognition", recognitionSchema);
