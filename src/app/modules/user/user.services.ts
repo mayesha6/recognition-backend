@@ -298,75 +298,7 @@ const getMe = async (userId: string) => {
   };
 };
 
-const getSingleUser = async (id: string) => {
-  const user = await User.findById(id).select("-password");
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
 
-  const { year, quarter } = getCurrentQuarter();
-
-  const wallet = await Wallet.findOne({
-    user: user._id,
-    year,
-    quarter
-  });
-
-  return {
-    data: {
-      ...user.toObject(),
-      wallet: wallet || null
-    }
-  };
-};
-
-const updateUser = async (
-  userId: string,
-  payload: Partial<IUser>,
-  decodedToken: JwtPayload
-) => {
-
-  const targetUser = await User.findById(userId);
-
-  if (!targetUser) {
-    throw new AppError(404, "User Not Found");
-  }
-
-  // ❌ Normal user cannot update others
-  if (decodedToken.role === Role.USER) {
-    throw new AppError(403, "Not authorized");
-  }
-
-  // 🔥 ADMIN restrictions
-  if (decodedToken.role === Role.ORGANIZATION_ADMIN || decodedToken.role === Role.DEPARTMENT_ADMIN) {
-
-    if (targetUser.role === Role.SUPER_ADMIN) {
-      throw new AppError(403, "Not authorized");
-    }
-
-    if (targetUser.department !== decodedToken.department) {
-      throw new AppError(
-        403,
-        "You cannot modify users from another department"
-      );
-    }
-
-    // if (payload.department) {
-    //   throw new AppError(
-    //     403,
-    //     "Admin cannot change department"
-    //   );
-    // }
-  }
-
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    payload,
-    { new: true, runValidators: true }
-  );
-
-  return updatedUser;
-};
 const getS3KeyFromUrl = (url: string) => {
   const parts = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`);
   return parts[1] ?? "";
@@ -466,40 +398,134 @@ const deleteOwnAccount = async (userId: string) => {
   return { message: "Your account has been deleted successfully" };
 };
 
+const deleteAllUsers = async () => {
+  const result = await User.deleteMany({});
+
+  return result;
+};
+
+const getSingleUser = async (id: string, decodedToken: JwtPayload) => {
+  const user = await User.findById(id).select("-password");
+  
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // ==========================================
+  // 🔐 CROSS-TENANT DATA ISOLATION (GET)
+  // ==========================================
+  if (decodedToken.role !== Role.SUPER_ADMIN) {
+    // If the target user is an Organization Admin, their _id is the organizationId
+    const targetOrgId = user.organizationId?.toString() || user._id.toString();
+    const requesterOrgId = decodedToken.role === Role.ORGANIZATION_ADMIN 
+      ? decodedToken.userId 
+      : decodedToken.organizationId;
+
+    if (targetOrgId !== requesterOrgId) {
+      throw new AppError(httpStatus.FORBIDDEN, "Not authorized to view users from another organization");
+    }
+
+    if (decodedToken.role === Role.DEPARTMENT_ADMIN || decodedToken.role === Role.USER) {
+      if (user.department !== decodedToken.department) {
+        throw new AppError(httpStatus.FORBIDDEN, "Not authorized to view users outside your department");
+      }
+    }
+  }
+
+  const { year, quarter } = getCurrentQuarter();
+  const wallet = await Wallet.findOne({ user: user._id, year, quarter });
+
+  return {
+    data: { ...user.toObject(), wallet: wallet || null }
+  };
+};
+
+const updateUser = async (
+  userId: string,
+  payload: Partial<IUser>,
+  decodedToken: JwtPayload
+) => {
+  const targetUser = await User.findById(userId);
+
+  if (!targetUser) {
+    throw new AppError(404, "User Not Found");
+  }
+
+  // Normal user cannot update others
+  if (decodedToken.role === Role.USER) {
+    throw new AppError(403, "Not authorized");
+  }
+
+  // ==========================================
+  // 🔐 CROSS-TENANT DATA ISOLATION (UPDATE)
+  // ==========================================
+  if (decodedToken.role !== Role.SUPER_ADMIN) {
+    if (targetUser.role === Role.SUPER_ADMIN) {
+      throw new AppError(403, "Cannot modify Super Admin");
+    }
+
+    const targetOrgId = targetUser.organizationId?.toString() || targetUser._id.toString();
+    const requesterOrgId = decodedToken.role === Role.ORGANIZATION_ADMIN 
+      ? decodedToken.userId 
+      : decodedToken.organizationId;
+
+    if (targetOrgId !== requesterOrgId) {
+      throw new AppError(403, "Cannot modify users from another organization");
+    }
+
+    if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
+      if (targetUser.department !== decodedToken.department) {
+        throw new AppError(403, "Cannot modify users from another department");
+      }
+    }
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    payload,
+    { new: true, runValidators: true }
+  );
+
+  return updatedUser;
+};
+
 const deleteUserById = async (
   id: string,
   decodedToken: JwtPayload
 ) => {
-
   const user = await User.findById(id);
 
   if (!user) {
     throw new AppError(404, "User not found");
   }
 
-  if (decodedToken.role === Role.ORGANIZATION_ADMIN || decodedToken.role === Role.DEPARTMENT_ADMIN) {
-
+  // ==========================================
+  // 🔐 CROSS-TENANT DATA ISOLATION (DELETE)
+  // ==========================================
+  if (decodedToken.role !== Role.SUPER_ADMIN) {
     if (user.role === Role.SUPER_ADMIN) {
-      throw new AppError(403, "Not allowed");
+      throw new AppError(403, "Cannot delete Super Admin");
     }
 
-    if (user.department !== decodedToken.department) {
-      throw new AppError(
-        403,
-        "You cannot delete users from another department"
-      );
+    const targetOrgId = user.organizationId?.toString() || user._id.toString();
+    const requesterOrgId = decodedToken.role === Role.ORGANIZATION_ADMIN 
+      ? decodedToken.userId 
+      : decodedToken.organizationId;
+
+    if (targetOrgId !== requesterOrgId) {
+      throw new AppError(403, "Cannot delete users from another organization");
+    }
+
+    if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
+      if (user.department !== decodedToken.department) {
+        throw new AppError(403, "Cannot delete users from another department");
+      }
     }
   }
 
   await User.findByIdAndDelete(id);
 
   return user;
-};
-
-const deleteAllUsers = async () => {
-  const result = await User.deleteMany({});
-
-  return result;
 };
 
 export const UserServices = {
