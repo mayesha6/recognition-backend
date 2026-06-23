@@ -1,127 +1,110 @@
-import { JwtPayload } from "jsonwebtoken"
-import { getCurrentQuarter } from "../../utils/wallet"
-import { User } from "../user/user.model"
-import { Wallet } from "./wallet.model"
-import AppError from "../../errorHelpers/AppError"
+import { JwtPayload } from "jsonwebtoken";
+import { getCurrentQuarter } from "../../utils/wallet";
+import { User } from "../user/user.model";
+import { Wallet } from "./wallet.model";
+import AppError from "../../errorHelpers/AppError";
 import httpStatus from "http-status-codes";
-import mongoose from "mongoose"
+import mongoose from "mongoose";
+import { Role, AccountType } from "../user/user.interface";
 
-const getWallet = async (userId: string, year: number, quarter: number) => {
+// ==========================================
+// 🛡️ HELPER: Deduct Points from Sender
+// ==========================================
+const deductSenderPoints = async (
+  senderToken: JwtPayload,
+  totalPointsRequired: number,
+  session: mongoose.ClientSession,
+  year: number,
+  quarter: number
+) => {
+  // Super Admin has infinite points
+  if (senderToken.role === Role.SUPER_ADMIN) return;
 
-  const wallet = await Wallet.findOne({
-    user: userId,
+  const senderWallet = await Wallet.findOne({
+    user: senderToken.userId,
     year,
-    quarter
-  })
+    quarter,
+  }).session(session);
 
-  return wallet
-}
+  if (!senderWallet || senderWallet.pointsBalance < totalPointsRequired) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Insufficient points. You need ${totalPointsRequired} points, but your balance is ${senderWallet?.pointsBalance || 0}.`
+    );
+  }
 
-const distributePoints = async (department: string, points: number) => {
+  senderWallet.pointsBalance -= totalPointsRequired;
+  senderWallet.pointsUsed += totalPointsRequired;
+  await senderWallet.save({ session });
+};
 
+// ==========================================
+// 🚀 SERVICES
+// ==========================================
+const getWallet = async (userId: string, year: number, quarter: number) => {
+  return await Wallet.findOne({ user: userId, year, quarter });
+};
+
+const distributePoints = async (
+  department: string,
+  points: number,
+  decodedToken: JwtPayload
+) => {
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
 
-    const users = await User.find({ department }).select("_id");
-if (users.length === 0) {
-  throw new AppError( httpStatus.NOT_FOUND, "No users found in this department");
-}
     const { year, quarter } = getCurrentQuarter();
+    const query: any = { department, isDeleted: false };
 
-    const operations = users.map(user => ({
+    // 🔐 ISOLATION LOGIC
+    if (decodedToken.role === Role.SUPER_ADMIN) {
+      // SA only distributes to Individual Accounts
+      query.accountType = AccountType.INDIVIDUAL;
+    } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
+      // OA only distributes to their own organization
+      query.organizationId = decodedToken.userId;
+    } else if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
+      // DA only distributes to their own org AND own department
+      if (department !== decodedToken.department) {
+        throw new AppError(httpStatus.FORBIDDEN, "You can only distribute points to your own department.");
+      }
+      query.organizationId = decodedToken.organizationId;
+    }
+
+    const users = await User.find(query).select("_id").session(session);
+
+    if (users.length === 0) {
+      throw new AppError(httpStatus.NOT_FOUND, "No valid users found in this department to distribute points.");
+    }
+
+    // 💰 CALCULATE AND DEDUCT POINTS
+    const totalPointsNeeded = points * users.length;
+    await deductSenderPoints(decodedToken, totalPointsNeeded, session, year, quarter);
+
+    // 🔄 BULK UPDATE RECEIVERS
+    const operations = users.map((user) => ({
       updateOne: {
-        filter: {
-          user: user._id,
-          year,
-          quarter
-        },
+        filter: { user: user._id, year, quarter },
         update: {
           $inc: {
             pointsAllocated: points,
-            pointsBalance: points
+            pointsBalance: points,
           },
-          $setOnInsert: {
-            pointsUsed: 0
-          }
+          $setOnInsert: { pointsUsed: 0 },
         },
-        upsert: true
-      }
+        upsert: true,
+      },
     }));
 
     await Wallet.bulkWrite(operations, { session });
 
     await session.commitTransaction();
-    return true;
-
+    return { distributedTo: users.length, totalPointsDeducted: totalPointsNeeded };
   } catch (error) {
     await session.abortTransaction();
     throw error;
-
-  } finally {
-    session.endSession();
-  }
-};
-
-const resetPoints = async (department?: string) => {
-
-  const session = await mongoose.startSession();
-
-  try {
-    session.startTransaction();
-
-    const { year, quarter } = getCurrentQuarter();
-
-    const filter: any = {
-      year,
-      quarter
-    };
-
-    if (department) {
-
-      const normalizedDept = department.toLowerCase();
-
-      const users = await User.find({
-        department
-      }).select("_id");
-if (!users.length) {
-  throw new AppError(404, "No users found in this department");
-}
-      const userIds = users.map(u => u._id);
-    console.log("USERS:", users);
-console.log("USER IDS:", userIds);
-      if (userIds.length === 0) {
-        throw new AppError(404, "No users found in this department");
-      }
-
-      filter.user = { $in: userIds };
-    }
-
-    const result = await Wallet.updateMany(
-      filter,
-      {
-        $set: {
-          pointsAllocated: 0,
-          pointsBalance: 0,
-          pointsUsed: 0
-        }
-      },
-      { session }
-    );
-
-
-console.log("FILTER:", filter);
-console.log("RESULT:", result);
-    console.log("RESET RESULT:", result);
-
-    await session.commitTransaction();
-    return true;
-
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
-
   } finally {
     session.endSession();
   }
@@ -129,58 +112,106 @@ console.log("RESULT:", result);
 
 const setUserPoints = async (
   email: string,
-  points: number,
+  points: number, // Points to ADD to the user
   decodedToken: JwtPayload
 ) => {
-
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
-
     const { year, quarter } = getCurrentQuarter();
 
-    // 🔥 email থেকে user বের করো
-    const user = await User.findOne({ email }).session(session);
+    const user = await User.findOne({ email, isDeleted: false }).session(session);
+    if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
 
-    if (!user) {
-      throw new AppError( httpStatus.NOT_FOUND, "User not found");
-    }
-
-    // 🔐 admin department restriction
-    if (decodedToken.role === "ADMIN") {
-      if (user.department !== decodedToken.department) {
-        throw new AppError( httpStatus.FORBIDDEN, "Not allowed");
+    // 🔐 ISOLATION LOGIC
+    if (decodedToken.role === Role.SUPER_ADMIN) {
+      if (user.accountType !== AccountType.INDIVIDUAL) {
+        throw new AppError(httpStatus.FORBIDDEN, "Super Admin can only distribute points to Individual accounts.");
+      }
+    } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
+      const targetOrgId = user.organizationId?.toString() || user._id.toString();
+      if (targetOrgId !== decodedToken.userId) {
+        throw new AppError(httpStatus.FORBIDDEN, "User does not belong to your organization.");
+      }
+    } else if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
+      const targetOrgId = user.organizationId?.toString();
+      if (targetOrgId !== decodedToken.organizationId || user.department !== decodedToken.department) {
+        throw new AppError(httpStatus.FORBIDDEN, "User does not belong to your department.");
       }
     }
 
-    // 💰 upsert wallet
+    // 💰 DEDUCT FROM SENDER
+    await deductSenderPoints(decodedToken, points, session, year, quarter);
+
+    // 🔄 ADD TO RECEIVER (Using $inc to properly mathematically add the points)
     await Wallet.updateOne(
+      { user: user._id, year, quarter },
       {
-        user: user._id,
-        year,
-        quarter
-      },
-      {
-        $set: {
+        $inc: {
           pointsAllocated: points,
           pointsBalance: points,
-          pointsUsed: 0
-        }
+        },
+        $setOnInsert: { pointsUsed: 0 },
       },
-      {
-        upsert: true,
-        session
-      }
+      { upsert: true, session }
     );
 
     await session.commitTransaction();
     return true;
-
   } catch (error) {
     await session.abortTransaction();
     throw error;
+  } finally {
+    session.endSession();
+  }
+};
 
+const resetPoints = async (department: string | undefined, decodedToken: JwtPayload) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+    const { year, quarter } = getCurrentQuarter();
+
+    const query: any = { isDeleted: false };
+    let departmentToReset = department;
+
+    // 🔐 ISOLATION LOGIC
+    if (decodedToken.role === Role.SUPER_ADMIN) {
+      query.accountType = AccountType.INDIVIDUAL;
+      if (department) query.department = department;
+    } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
+      query.organizationId = decodedToken.userId;
+      if (department) query.department = department;
+    } else {
+      throw new AppError(httpStatus.FORBIDDEN, "You do not have permission to reset points.");
+    }
+
+    const users = await User.find(query).select("_id").session(session);
+    if (users.length === 0) {
+      throw new AppError(httpStatus.NOT_FOUND, "No users found matching the criteria.");
+    }
+
+    const userIds = users.map((u) => u._id);
+
+    const result = await Wallet.updateMany(
+      { user: { $in: userIds }, year, quarter },
+      {
+        $set: {
+          pointsAllocated: 0,
+          pointsBalance: 0,
+          pointsUsed: 0,
+        },
+      },
+      { session }
+    );
+
+    await session.commitTransaction();
+    return { resetCount: result.modifiedCount };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
   } finally {
     session.endSession();
   }
@@ -190,5 +221,5 @@ export const WalletServices = {
   getWallet,
   distributePoints,
   resetPoints,
-  setUserPoints
+  setUserPoints,
 };
