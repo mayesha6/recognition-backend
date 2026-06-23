@@ -1,71 +1,111 @@
 import httpStatus from "http-status-codes";
 import { Category } from "./category.model";
 import AppError from "../../errorHelpers/AppError";
+import { JwtPayload } from "jsonwebtoken";
+import { Role } from "../user/user.interface";
+// import { deleteFileFromS3 } from "../../config/S3Client.config"; // Uncomment if you want S3 deletion
 
-const createCategory = async (payload: any) => {
-  const category = await Category.create(payload);
+const createCategory = async (payload: any, user: JwtPayload) => {
+  let organizationId = null;
+
+  if (user.role === Role.ORGANIZATION_ADMIN) {
+    organizationId = user.userId;
+  }
+
+  const existingCategory = await Category.findOne({ name: payload.name, organizationId });
+  if (existingCategory) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Category with this name already exists");
+  }
+
+  const category = await Category.create({
+    ...payload,
+    organizationId,
+    createdBy: user.userId,
+  });
+
   return category;
 };
 
-const getCategories = async () => {
-  return await Category.find();
+const getCategories = async (user: JwtPayload) => {
+  const filter: any = {};
+
+  if (user.role === Role.SUPER_ADMIN) {
+    filter.organizationId = null; // Only global categories
+  } else if (user.role === Role.ORGANIZATION_ADMIN) {
+    filter.$or = [{ organizationId: null }, { organizationId: user.userId }];
+  } else {
+    filter.$or = [{ organizationId: null }, { organizationId: user.organizationId }];
+  }
+
+  return await Category.find(filter).sort({ createdAt: -1 });
 };
 
-const updateCategory = async (id: string, payload: any) => {
+// Helper function to check authorization
+const verifyCategoryAccess = async (categoryId: string, user: JwtPayload) => {
+  const category = await Category.findById(categoryId);
+  if (!category) throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+
+  if (user.role === Role.SUPER_ADMIN && category.organizationId !== null) {
+    throw new AppError(httpStatus.FORBIDDEN, "Super Admin can only modify global categories");
+  }
+
+  if (user.role === Role.ORGANIZATION_ADMIN) {
+    if (!category.organizationId || category.organizationId.toString() !== user.userId) {
+      throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this organization's category");
+    }
+  }
+
+  return category;
+};
+
+const updateCategory = async (id: string, payload: any, user: JwtPayload) => {
+  await verifyCategoryAccess(id, user);
+
   const category = await Category.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
 
-  if (!category) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-  }
-
   return category;
 };
 
-const deleteCategory = async (id: string) => {
-  const category = await Category.findByIdAndDelete(id);
+const deleteCategory = async (id: string, user: JwtPayload) => {
+  await verifyCategoryAccess(id, user);
 
-  if (!category) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-  }
+  // Optional: If you want to delete images from S3 when a category is deleted
+  // const category = await Category.findById(id);
+  // category?.images.forEach(async (url) => {
+  //   const key = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
+  //   if (key) await deleteFileFromS3(key);
+  // });
 
-  return category;
+  return await Category.findByIdAndDelete(id);
 };
 
-const addImages = async (categoryId: string, images: string[]) => {
+const addImages = async (categoryId: string, images: string[], user: JwtPayload) => {
+  await verifyCategoryAccess(categoryId, user);
+
   const category = await Category.findByIdAndUpdate(
     categoryId,
-    {
-      $push: {
-        images: { $each: images },
-      },
-    },
+    { $push: { images: { $each: images } } },
     { new: true }
   );
 
-  if (!category) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-  }
-
   return category;
 };
 
-const deleteImage = async (categoryId: string, imageUrl: string) => {
+const deleteImage = async (categoryId: string, imageUrl: string, user: JwtPayload) => {
+  await verifyCategoryAccess(categoryId, user);
+
   const category = await Category.findByIdAndUpdate(
     categoryId,
-    {
-      $pull: {
-        images: imageUrl,
-      },
-    },
+    { $pull: { images: imageUrl } },
     { new: true }
   );
 
-  if (!category) {
-    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-  }
+  // Optional: Remove file from S3 physically
+  // const key = imageUrl.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
+  // if (key) await deleteFileFromS3(key);
 
   return category;
 };
