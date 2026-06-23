@@ -1,3 +1,7 @@
+import { Types } from "mongoose";
+
 export interface IRecognitionValue {
-  name: string
+  name: string;
+  organizationId?: Types.ObjectId | null;
+  createdBy: Types.ObjectId;
 }
