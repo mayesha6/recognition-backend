@@ -1,51 +1,50 @@
-import { Router } from "express"
-import { CategoryController } from "./category.controller"
-import { checkAuth } from "../../middlewares/checkAuth"
-import { FileTypes, upload } from "../../config/S3Client.config"
+import { Router } from "express";
+import { CategoryController } from "./category.controller";
+import { checkAuth } from "../../middlewares/checkAuth";
+import { FileTypes, upload } from "../../config/S3Client.config";
+import { Role } from "../user/user.interface";
 
-const router = Router()
-
-router.post(
-    "/create",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    CategoryController.createCategory
-)
-
-router.get( 
-    "/",
-    // checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
-    CategoryController.getCategories
-)
+const router = Router();
 
 router.post(
-    "/:id/images",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
+  "/create",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  CategoryController.createCategory
+);
 
-    upload({
-        folder: "CategoryImages",
-        fileType: FileTypes.IMAGE,
-        maxCount: 10
-    }),
+router.get(
+  "/",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER),
+  CategoryController.getCategories
+);
 
-    CategoryController.addImages
-)
+router.post(
+  "/:id/images",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  upload({
+    folder: "CategoryImages",
+    fileType: FileTypes.IMAGE,
+    maxCount: 10,
+  }),
+  CategoryController.addImages
+);
 
 router.patch(
-    "/update-category/:id",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    CategoryController.updateCategory
-)
-router.delete(
-    "/delete-category/:id",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    CategoryController.deleteCategory
-)
+  "/update-category/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  CategoryController.updateCategory
+);
 
 router.delete(
-    "/image",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    CategoryController.deleteImage
-)
+  "/delete-category/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  CategoryController.deleteCategory
+);
 
+router.delete(
+  "/image",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  CategoryController.deleteImage
+);
 
-export const CategoryRoutes = router
+export const CategoryRoutes = router;
