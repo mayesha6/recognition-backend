@@ -22,4 +22,5 @@ export interface IPlan {
   stripeProductId: string;
   stripePriceId: string;
   access: IPlanAccess;
+  userLimit: number;
 }
