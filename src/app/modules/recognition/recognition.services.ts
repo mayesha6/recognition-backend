@@ -1,259 +1,22 @@
-import httpStatus from "http-status-codes"
-import { Recognition } from "./recognition.model"
-import { User } from "../user/user.model"
-import AppError from "../../errorHelpers/AppError"
-import { QueryBuilder } from "../../utils/QueryBuiler"
-import { PointsTransaction } from "../points/points.model"
-import { sendEmail } from "../../utils/sendEmail"
-import { getCurrentQuarter } from "../../utils/wallet"
-import { Wallet } from "../wallet/wallet.model"
-import { Category } from "../category/category.model"
-import { IRecognition, RecognitionStatus } from "./recognition.interface"
-import { AiMessengerService } from "../aiMessenger/aiMessenger.service"
-import { AiMessage } from "../aiMessenger/aiMessage.model"
-import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValues"
-
-// const sendRecognition = async (
-//   senderEmail: string,
-//   senderId: string,
-//   payload: IRecognition
-// ) => {
-//   const {
-//     receiverEmail,
-//     points,
-//     messageId,
-//     additionalMessage,
-//     image
-//   } = payload;
-
-//   let aiMessage;
-
-//   // =========================
-//   // FIND AI MESSAGE
-//   // =========================
-//   if (messageId) {
-//     aiMessage = await AiMessage.findById(messageId);
-
-//     if (!aiMessage) {
-//       throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
-//     }
-
-//     // Prevent using another user's message
-//     if (aiMessage.user.toString() !== senderId.toString()) {
-//       throw new AppError(
-//         httpStatus.FORBIDDEN,
-//         "Unauthorized message usage"
-//       );
-//     }
-//   } else {
-//     aiMessage = await AiMessage.findOne({
-//       user: senderId,
-//       status: RecognitionStatus.PENDING
-//     }).sort({ createdAt: -1 });
-
-//     if (!aiMessage) {
-//       throw new AppError(
-//         httpStatus.NOT_FOUND,
-//         "No pending AI message found for this user"
-//       );
-//     }
-//   }
-
-//   // =========================
-//   // ALREADY SENT CHECK
-//   // =========================
-//   if (aiMessage.status === RecognitionStatus.SENT) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       "Recognition already sent"
-//     );
-//   }
-
-//   // =========================
-//   // SELF SEND CHECK
-//   // =========================
-//   if (senderEmail === receiverEmail) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       "You cannot send recognition to yourself"
-//     );
-//   }
-
-//   // =========================
-//   // FIND SENDER
-//   // =========================
-//   const sender = await User.findOne({ email: senderEmail });
-
-//   if (!sender) {
-//     throw new AppError(
-//       httpStatus.NOT_FOUND,
-//       "Sender not found"
-//     );
-//   }
-
-//   // =========================
-//   // FIND RECEIVER (OPTIONAL)
-//   // =========================
-//   const receiver = await User.findOne({
-//     email: receiverEmail
-//   });
-
-//   // Default values for non-registered user
-//   let receiverDepartment = "Non Registered";
-//   let receiverWallet = null;
-
-//   // =========================
-//   // QUARTER
-//   // =========================
-//   const { year, quarter } = getCurrentQuarter();
-
-//   // =========================
-//   // SENDER WALLET
-//   // =========================
-//   const senderWallet = await Wallet.findOne({
-//     user: sender._id,
-//     year,
-//     quarter
-//   });
-
-//   if (!senderWallet) {
-//     throw new AppError(
-//       httpStatus.NOT_FOUND,
-//       "Sender wallet not found"
-//     );
-//   }
-
-//   // =========================
-//   // POINT BALANCE CHECK
-//   // =========================
-//   if (senderWallet.pointsBalance < points) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       "Not enough points"
-//     );
-//   }
-
-//   // =========================
-//   // REGISTERED USER LOGIC
-//   // =========================
-//   if (receiver) {
-//     receiverDepartment = receiver.department;
-
-//     // Department validation
-//     if (aiMessage.department !== receiver.department) {
-//       throw new AppError(
-//         httpStatus.BAD_REQUEST,
-//         "Receiver department does not match the recognition department"
-//       );
-//     }
-
-//     receiverWallet = await Wallet.findOne({
-//       user: receiver._id,
-//       year,
-//       quarter
-//     });
-
-//     if (!receiverWallet) {
-//       throw new AppError(
-//         httpStatus.NOT_FOUND,
-//         "Receiver wallet not found"
-//       );
-//     }
-//   }
-
-//   // =========================
-//   // UPDATE WALLET
-//   // =========================
-//   senderWallet.pointsBalance -= points;
-//   senderWallet.pointsUsed += points;
-
-//   // Only if registered user
-//   if (receiverWallet) {
-//     receiverWallet.pointsBalance += points;
-//   }
-
-//   await senderWallet.save();
-
-//   if (receiverWallet) {
-//     await receiverWallet.save();
-//   }
-
-//   // =========================
-//   // NORMALIZE VALUES
-//   // =========================
-//   const recognitionValues = normalizeRecognitionValues(
-//     aiMessage.recognition_values
-//   );
-
-//   // =========================
-//   // CREATE RECOGNITION
-//   // =========================
-//   const recognition = await Recognition.create({
-//     senderEmail,
-//     receiverEmail,
-
-//     // Non-registered হলে এইটা হবে
-//     department: receiverDepartment,
-
-//     category: aiMessage.category,
-//     tone: aiMessage.tone,
-//     recognition_values: recognitionValues,
-//     points,
-//     message: aiMessage.generated_message,
-//     additionalMessage,
-//     image,
-//     status: RecognitionStatus.SENT
-//   });
-
-//   // =========================
-//   // TRANSACTION
-//   // =========================
-//   await PointsTransaction.create({
-//     senderEmail,
-//     receiverEmail,
-//     points,
-//     type: "RECOGNITION",
-//     status: "COMPLETED"
-//   });
-
-//   // =========================
-//   // EMAIL + AI STATUS
-//   // =========================
-//   try {
-//     aiMessage.status = RecognitionStatus.SENT;
-
-//     await aiMessage.save();
-
-//     await sendEmail({
-//       from: senderEmail,
-//       to: receiverEmail,
-//       subject: "You received a recognition!",
-//       templateName: "recognition",
-//       templateData: {
-//         senderName: sender.name,
-
-//         // Non-registered user support
-//         receiverName: receiver?.name || "User",
-
-//         message: aiMessage.generated_message,
-//         additionalMessage: additionalMessage || "",
-//         points,
-//         image
-//       }
-//     });
-//   } catch (error) {
-//     recognition.status = RecognitionStatus.FAILED;
-
-//     await recognition.save();
-//   }
-
-//   return recognition;
-// };
-
+// recognition.services.ts
+import mongoose from "mongoose";
+import httpStatus from "http-status-codes";
+import { Recognition } from "./recognition.model";
+import { User } from "../user/user.model";
+import AppError from "../../errorHelpers/AppError";
+import { QueryBuilder } from "../../utils/QueryBuiler";
+import { PointsTransaction } from "../points/points.model";
+import { sendEmail } from "../../utils/sendEmail";
+import { getCurrentQuarter } from "../../utils/wallet";
+import { Wallet } from "../wallet/wallet.model";
+import { IRecognition, RecognitionStatus } from "./recognition.interface";
+import { AiMessage } from "../aiMessenger/aiMessage.model";
+import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValues";
+import { JwtPayload } from "jsonwebtoken";
+import { Role } from "../user/user.interface";
 
 const sendRecognition = async (
-  senderEmail: string,
-  senderId: string,
+  senderToken: JwtPayload,
   payload: IRecognition
 ) => {
   const {
@@ -263,29 +26,25 @@ const sendRecognition = async (
     additionalMessage,
     image,
     recipient_name
-
   } = payload;
 
-  const incomingText = (payload as any).message || (payload as any).newMessage || (payload as any).generated_message;
+  const senderEmail = senderToken.email;
+  const senderId = senderToken.userId;
 
+  if (senderEmail === receiverEmail) {
+    throw new AppError(httpStatus.BAD_REQUEST, "You cannot send recognition to yourself");
+  }
+
+  const incomingText = (payload as any).message || (payload as any).newMessage || (payload as any).generated_message;
   let aiMessage;
 
   // =========================
-  // FIND AI MESSAGE
+  // AI MESSAGE VALIDATION
   // =========================
   if (messageId) {
     aiMessage = await AiMessage.findById(messageId);
-
-    if (!aiMessage) {
-      throw new AppError(httpStatus.NOT_FOUND, "AI message not found");
-    }
-
-    // Prevent using another user's message
-    if (aiMessage.user.toString() !== senderId.toString()) {
-      throw new AppError(
-        httpStatus.FORBIDDEN,
-        "Unauthorized message usage"
-      );
+    if (!aiMessage || aiMessage.user.toString() !== senderId.toString()) {
+      throw new AppError(httpStatus.FORBIDDEN, "AI message not found or unauthorized usage");
     }
   } else {
     aiMessage = await AiMessage.findOne({
@@ -294,182 +53,130 @@ const sendRecognition = async (
     }).sort({ createdAt: -1 });
 
     if (!aiMessage) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        "No pending AI message found for this user"
-      );
+      throw new AppError(httpStatus.NOT_FOUND, "No pending AI message found for this user");
     }
   }
 
-  // =========================
-  // DETERMINE THE FINAL MESSAGE
-  // =========================
-  // Prioritize the custom message from the payload if it exists
-  const finalMessage = incomingText && incomingText.trim() !== ""
-    ? incomingText
-    : aiMessage.generated_message;
-
-  // =========================
-  // ALREADY SENT CHECK
-  // =========================
   if (aiMessage.status === RecognitionStatus.SENT) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Recognition already sent"
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, "Recognition already sent");
   }
 
-  // =========================
-  // SELF SEND CHECK
-  // =========================
-  if (senderEmail === receiverEmail) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "You cannot send recognition to yourself"
-    );
-  }
+  const finalMessage = incomingText && incomingText.trim() !== "" ? incomingText : aiMessage.generated_message;
 
   // =========================
-  // FIND SENDER
+  // START SECURE TRANSACTION
   // =========================
-  const sender = await User.findOne({ email: senderEmail });
+  const session = await mongoose.startSession();
+  let createdRecognition: any;
 
-  if (!sender) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Sender not found"
-    );
-  }
+  try {
+    session.startTransaction();
 
-  // =========================
-  // FIND RECEIVER (OPTIONAL)
-  // =========================
-  const receiver = await User.findOne({
-    email: receiverEmail
-  });
+    const sender = await User.findOne({ email: senderEmail }).session(session);
+    if (!sender) throw new AppError(httpStatus.NOT_FOUND, "Sender not found");
 
-  // Default values for non-registered user
-  let receiverDepartment = "Non Registered";
-  let receiverWallet = null;
+    const receiver = await User.findOne({ email: receiverEmail }).session(session);
+    
+    // 🔥 SaaS Isolation: Prevent Cross-Tenant Sending
+    if (receiver && senderToken.role !== Role.SUPER_ADMIN) {
+      const senderOrgId = sender.organizationId?.toString() || sender._id.toString();
+      const receiverOrgId = receiver.organizationId?.toString() || receiver._id.toString();
 
-  // =========================
-  // QUARTER
-  // =========================
-  const { year, quarter } = getCurrentQuarter();
+      if (senderOrgId !== receiverOrgId) {
+        throw new AppError(httpStatus.FORBIDDEN, "You can only send recognition within your organization");
+      }
+    }
 
-  // =========================
-  // SENDER WALLET
-  // =========================
-  const senderWallet = await Wallet.findOne({
-    user: sender._id,
-    year,
-    quarter
-  });
+    const { year, quarter } = getCurrentQuarter();
 
-  if (!senderWallet) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Sender wallet not found"
-    );
-  }
+    // =========================
+    // POINT DEDUCTION LOGIC
+    // =========================
+    // Super Admins have infinite points, so bypass deduction
+    if (senderToken.role !== Role.SUPER_ADMIN) {
+      const senderWallet = await Wallet.findOne({ user: sender._id, year, quarter }).session(session);
+      
+      if (!senderWallet || senderWallet.pointsBalance < points) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Not enough points in your wallet");
+      }
 
-  // =========================
-  // POINT BALANCE CHECK
-  // =========================
-  if (senderWallet.pointsBalance < points) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Not enough points"
-    );
-  }
-
-  // =========================
-  // REGISTERED USER LOGIC
-  // =========================
-  if (receiver) {
-    receiverDepartment = receiver.department;
-
-    // Department validation
-    if (aiMessage.department !== receiver.department) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Receiver department does not match the recognition department"
+      await Wallet.updateOne(
+        { _id: senderWallet._id },
+        { $inc: { pointsBalance: -points, pointsUsed: points } },
+        { session }
       );
     }
 
-    receiverWallet = await Wallet.findOne({
-      user: receiver._id,
-      year,
-      quarter
-    });
+    // =========================
+    // RECEIVER WALLET ADDITION
+    // =========================
+    let receiverDepartment = "Non Registered";
 
-    if (!receiverWallet) {
-      throw new AppError(
-        httpStatus.NOT_FOUND,
-        "Receiver wallet not found"
+    if (receiver) {
+      receiverDepartment = receiver.department;
+      
+      if (aiMessage.department && aiMessage.department !== receiver.department) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Receiver department does not match the AI recognition intent");
+      }
+
+      await Wallet.updateOne(
+        { user: receiver._id, year, quarter },
+        { $inc: { pointsBalance: points, pointsAllocated: points } },
+        { upsert: true, session }
       );
     }
+
+    // =========================
+    // CREATE RECORDS
+    // =========================
+    const recognitionValues = normalizeRecognitionValues(aiMessage.recognition_values);
+    const orgId = senderToken.role === Role.SUPER_ADMIN ? null : (sender.organizationId || sender._id);
+
+    const recognitionDoc = await Recognition.create(
+      [{
+        senderEmail,
+        receiverEmail,
+        department: receiverDepartment,
+        category: aiMessage.category,
+        tone: aiMessage.tone,
+        recognition_values: recognitionValues,
+        points,
+        message: finalMessage,
+        additionalMessage,
+        image,
+        status: RecognitionStatus.SENT,
+        organizationId: orgId
+      }],
+      { session }
+    );
+    createdRecognition = recognitionDoc[0];
+
+    await PointsTransaction.create(
+      [{
+        senderEmail,
+        receiverEmail,
+        points,
+        type: "RECOGNITION",
+        status: "COMPLETED"
+      }],
+      { session }
+    );
+
+    // Commit if all DB operations succeed
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
 
   // =========================
-  // UPDATE WALLET
-  // =========================
-  senderWallet.pointsBalance -= points;
-  senderWallet.pointsUsed += points;
-
-  // Only if registered user
-  if (receiverWallet) {
-    receiverWallet.pointsBalance += points;
-  }
-
-  await senderWallet.save();
-
-  if (receiverWallet) {
-    await receiverWallet.save();
-  }
-
-  // =========================
-  // NORMALIZE VALUES
-  // =========================
-  const recognitionValues = normalizeRecognitionValues(
-    aiMessage.recognition_values
-  );
-
-  // =========================
-  // CREATE RECOGNITION
-  // =========================
-  const recognition = await Recognition.create({
-    senderEmail,
-    receiverEmail,
-    department: receiverDepartment,
-    category: aiMessage.category,
-    tone: aiMessage.tone,
-    recognition_values: recognitionValues,
-    points,
-    message: finalMessage, // Use the determined final message
-    additionalMessage,
-    image,
-    status: RecognitionStatus.SENT
-  });
-
-  // =========================
-  // TRANSACTION
-  // =========================
-  await PointsTransaction.create({
-    senderEmail,
-    receiverEmail,
-    points,
-    type: "RECOGNITION",
-    status: "COMPLETED"
-  });
-
-  // =========================
-  // EMAIL + AI STATUS
+  // POST-TRANSACTION LOGIC (Emails & AI Status Update)
   // =========================
   try {
     aiMessage.status = RecognitionStatus.SENT;
-    aiMessage.generated_message = finalMessage; // Save the updated message to DB
-
+    aiMessage.generated_message = finalMessage;
     await aiMessage.save();
 
     await sendEmail({
@@ -478,34 +185,38 @@ const sendRecognition = async (
       subject: "You received a recognition!",
       templateName: "recognition",
       templateData: {
-        senderName: sender.name,
-        receiverName: aiMessage.recipient_name,
-        message: finalMessage, // Use the determined final message
+        senderName: senderToken.name || "A Colleague",
+        receiverName: recipient_name || "User",
+        message: finalMessage,
         additionalMessage: additionalMessage || "",
         points,
         image
       }
     });
   } catch (error) {
-    recognition.status = RecognitionStatus.FAILED;
-    await recognition.save();
+    // If email fails, mark as failed but don't rollback the points (business logic choice)
+    await Recognition.findByIdAndUpdate(createdRecognition._id, { status: RecognitionStatus.FAILED });
   }
 
-  return recognition;
+  return createdRecognition;
 };
+
 const getRecognitionHistory = async (
-  email: string,
+  userToken: JwtPayload,
   query: Record<string, string>
 ) => {
+  const filter: any = {};
 
-  const baseQuery = Recognition.find({
-    $or: [
-      { senderEmail: email },
-      { receiverEmail: email }
-    ]
-  });
+  // SaaS Isolation for History Fetching
+  if (userToken.role === Role.USER) {
+    // Regular users only see their own history
+    filter.$or = [{ senderEmail: userToken.email }, { receiverEmail: userToken.email }];
+  } else if (userToken.role === Role.ORGANIZATION_ADMIN || userToken.role === Role.DEPARTMENT_ADMIN) {
+    // Admins can see the whole organization's history
+    filter.organizationId = userToken.role === Role.ORGANIZATION_ADMIN ? userToken.userId : userToken.organizationId;
+  }
 
-  const queryBuilder = new QueryBuilder(baseQuery, query)
+  const queryBuilder = new QueryBuilder(Recognition.find(filter), query)
     .search(["senderEmail", "receiverEmail", "category", "message", "department"])
     .filter()
     .sort()
@@ -515,13 +226,10 @@ const getRecognitionHistory = async (
   const result = await queryBuilder.build();
   const meta = await queryBuilder.getMeta();
 
-  return {
-    meta,
-    result
-  };
+  return { meta, result };
 };
 
 export const RecognitionServices = {
   sendRecognition,
   getRecognitionHistory
-}
+};
