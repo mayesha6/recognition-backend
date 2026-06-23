@@ -3,55 +3,59 @@ import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import httpStatus from "http-status-codes";
 import { ToneService } from "./tone.services";
+import { JwtPayload } from "jsonwebtoken";
 
 const createTone = catchAsync(async (req: Request, res: Response) => {
-  const result = await ToneService.createTone(req.body);
+  const user = req.user as JwtPayload;
+  const result = await ToneService.createTone(req.body, user);
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "Tone created",
+    message: "Tone created successfully",
     data: result,
   });
 });
 
-const getTones = catchAsync(async (req:Request, res:Response) => {
-  const result = await ToneService.getTones();
+const getTones = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload;
+  const result = await ToneService.getTones(user);
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Tones fetched",
+    message: "Tones fetched successfully",
     data: result,
   });
 });
 
-const updateTone = catchAsync(async (req:Request, res:Response) => {
+const updateTone = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
+  const user = req.user as JwtPayload;
 
-  const result = await ToneService.updateTone(id, req.body);
+  const result = await ToneService.updateTone(id, req.body, user);
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Tone updated",
+    message: "Tone updated successfully",
     data: result,
   });
 });
 
-const deleteTone = catchAsync(async (req:Request, res:Response) => {
+const deleteTone = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
+  const user = req.user as JwtPayload;
 
-  await ToneService.deleteTone(id);
+  await ToneService.deleteTone(id, user);
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Tone deleted",
+    message: "Tone deleted successfully",
     data: null,
   });
 });
-
 
 export const ToneController = {
   createTone,
