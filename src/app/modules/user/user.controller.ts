@@ -83,7 +83,10 @@ const getMe = catchAsync(
 const getSingleUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const id = req.params.id;
-    const result = await UserServices.getSingleUser(id);
+    const decodedToken = req.user as JwtPayload; // Pass token for isolation check
+
+    const result = await UserServices.getSingleUser(id, decodedToken);
+    
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,

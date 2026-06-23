@@ -14,6 +14,7 @@ import { sendEmail } from "../../utils/sendEmail";
 import { redisClient } from "../../config/redis.config";
 import { getCurrentQuarter } from "../../utils/wallet";
 import { Wallet } from "../wallet/wallet.model";
+import { SubscriptionStatus } from "../subscription/subscription.interface";
 
 const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) => {
   const { email, password, accountType, department, ...rest } = payload;
@@ -23,37 +24,68 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
     throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
   }
 
-  const hashedPassword = await bcryptjs.hash(
-    password as string,
-    Number(envVars.BCRYPT_SALT_ROUND)
-  );
-
   let role = Role.USER;
   let organizationId = null;
   let assignedDepartment = department || "Personal Account";
 
   // ==========================================
-  // 🔥 MULTI-TENANT USER CREATION LOGIC
+  // 🔥 SUBSCRIPTION & USER LIMIT CHECK
   // ==========================================
   if (creatorToken) {
-    // ১. Organization Admin যদি কাউকে তৈরি করে
     if (creatorToken.role === Role.ORGANIZATION_ADMIN) {
       organizationId = creatorToken.userId;
-      
-      // OA চাইলে DA বা User বানাতে পারে। Payload থেকে role নিবো, না দিলে ডিফল্ট USER
       if (payload.role === Role.DEPARTMENT_ADMIN) {
         role = Role.DEPARTMENT_ADMIN;
       }
-    } 
-    // ২. Department Admin যদি কাউকে তৈরি করে
-    else if (creatorToken.role === Role.DEPARTMENT_ADMIN) {
+    } else if (creatorToken.role === Role.DEPARTMENT_ADMIN) {
       organizationId = creatorToken.organizationId;
-      assignedDepartment = creatorToken.department; // DA শুধু নিজের ডিপার্টমেন্টের ইউজার বানাতে পারবে
-      role = Role.USER; // DA শুধু সাধারণ User বানাতে পারবে
+      assignedDepartment = creatorToken.department;
+      role = Role.USER; 
+    }
+
+    // ডাটাবেজ থেকে রুট অর্গানাইজেশন এডমিনের ডাটা প্ল্যান সহ আনবো
+    const rootOrgAdmin = await User.findById(organizationId).populate("currentPlan");
+
+    if (!rootOrgAdmin) {
+      throw new AppError(httpStatus.NOT_FOUND, "Organization Admin not found");
+    }
+
+    // ১. সাবস্ক্রিপশন অ্যাক্টিভ আছে কি না চেক করা
+    if (
+      rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.ACTIVE &&
+      rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.TRIAL
+    ) {
+      throw new AppError(httpStatus.FORBIDDEN, "Organization subscription is not active. Please upgrade your plan.");
+    }
+
+    // ২. প্ল্যান লিমিট চেক করা
+    const plan = rootOrgAdmin.currentPlan as any; 
+    if (!plan || !plan.userLimit) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Active plan details not found");
+    }
+
+    // বর্তমান ইউজারের সংখ্যা বের করা (অর্গানাইজেশন এডমিন বাদে)
+    const currentUserCount = await User.countDocuments({ 
+      organizationId, 
+      isDeleted: false 
+    });
+
+    if (currentUserCount >= plan.userLimit) {
+      throw new AppError(
+        httpStatus.FORBIDDEN, 
+        `User limit reached! Your plan allows up to ${plan.userLimit} users.`
+      );
     }
   }
 
-  // 🔥 STATUS LOGIC
+  // ==========================================
+  // 🚀 USER CREATION
+  // ==========================================
+  const hashedPassword = await bcryptjs.hash(
+    password as string,
+    Number(envVars.BCRYPT_SALT_ROUND)
+  );
+
   const status =
     accountType === AccountType.ORGANIZATION
       ? AccountStatus.PENDING
@@ -62,7 +94,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
   const user = await User.create({
     email,
     password: hashedPassword,
-    accountType: organizationId ? AccountType.INDIVIDUAL : accountType, // If created under OA, it's an individual
+    accountType: organizationId ? AccountType.INDIVIDUAL : accountType,
     role,
     status,
     department: assignedDepartment,
@@ -75,7 +107,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
     throw new AppError(httpStatus.BAD_REQUEST, "Failed to register user");
   }
 
-  // --- Email & Wallet Logic remain exactly the same as your code ---
+  // অর্গানাইজেশন এডমিন প্রথমবার রেজিস্ট্রেশন করলে ইমেইল যাবে
   if (accountType === AccountType.ORGANIZATION && !creatorToken) {
     await sendEmail({
       to: envVars.EMAIL_SENDER.SMTP_FROM, 
