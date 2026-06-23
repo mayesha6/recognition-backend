@@ -3,7 +3,8 @@ import { Category } from "./category.model";
 import AppError from "../../errorHelpers/AppError";
 import { JwtPayload } from "jsonwebtoken";
 import { Role } from "../user/user.interface";
-// import { deleteFileFromS3 } from "../../config/S3Client.config"; // Uncomment if you want S3 deletion
+import { deleteFileFromS3 } from "../../config/S3Client.config";
+import { envVars } from "../../config/env";
 
 const createCategory = async (payload: any, user: JwtPayload) => {
   let organizationId = null;
@@ -73,11 +74,11 @@ const deleteCategory = async (id: string, user: JwtPayload) => {
   await verifyCategoryAccess(id, user);
 
   // Optional: If you want to delete images from S3 when a category is deleted
-  // const category = await Category.findById(id);
-  // category?.images.forEach(async (url) => {
-  //   const key = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
-  //   if (key) await deleteFileFromS3(key);
-  // });
+  const category = await Category.findById(id);
+  category?.images.forEach(async (url) => {
+    const key = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
+    if (key) await deleteFileFromS3(key);
+  });
 
   return await Category.findByIdAndDelete(id);
 };
@@ -104,8 +105,8 @@ const deleteImage = async (categoryId: string, imageUrl: string, user: JwtPayloa
   );
 
   // Optional: Remove file from S3 physically
-  // const key = imageUrl.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
-  // if (key) await deleteFileFromS3(key);
+  const key = imageUrl.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
+  if (key) await deleteFileFromS3(key);
 
   return category;
 };
