@@ -1,30 +1,32 @@
-import { Router } from "express"
-import { checkAuth } from "../../middlewares/checkAuth"
-import { RecognitionValueController } from "./recognitionValue.controller"
+import { Router } from "express";
+import { checkAuth } from "../../middlewares/checkAuth";
+import { Role } from "../user/user.interface"; // Assuming your Role enum is here
+import { RecognitionValueController } from "./recognitionValue.controller";
 
-const router = Router()
+const router = Router();
 
 router.post(
-    "/",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    RecognitionValueController.createRecognitionValue
-)
+  "/",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  RecognitionValueController.createRecognitionValue
+);
 
-router.get( 
-    "/",
-    checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
-    RecognitionValueController.getRecognitionValues
-)
+router.get(
+  "/",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER),
+  RecognitionValueController.getRecognitionValues
+);
 
 router.patch(
-    "/:id",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    RecognitionValueController.updateRecognitionValue
-)
-router.delete(
-    "/:id",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    RecognitionValueController.deleteRecognitionValue
-)
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  RecognitionValueController.updateRecognitionValue
+);
 
-export const RecognitionValueRoutes = router
+router.delete(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  RecognitionValueController.deleteRecognitionValue
+);
+
+export const RecognitionValueRoutes = router;
