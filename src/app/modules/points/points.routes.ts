@@ -1,29 +1,32 @@
 import { Router } from "express";
 import { PointsController } from "./points.controller";
 import { checkAuth } from "../../middlewares/checkAuth";
+import { Role } from "../user/user.interface"; // Role import করুন
 
 const router = Router();
 
-// router.post("/send", PointsController.createTransaction); // send points
+// admin/super_admin checking specific user
 router.get(
     "/transactions/:email", 
-    checkAuth("ADMIN", "SUPER_ADMIN"),
+    checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN),
     PointsController.getUserTransactions
-); // history
-router.get(
-    "/my-transactions", 
-    checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
-    PointsController.getMyTransactions
-); // history
+); 
 router.get(
     "/balance/:email", 
-    checkAuth("ADMIN", "SUPER_ADMIN"), 
+    checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN), 
     PointsController.getUserBalance
-); // current points
+);
+
+// user checking their own
+router.get(
+    "/my-transactions", 
+    checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER),
+    PointsController.getMyTransactions
+); 
 router.get(
     "/my-balance", 
-    checkAuth("ADMIN", "SUPER_ADMIN", "USER"), 
+    checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER), 
     PointsController.getMyBalance
-); // current points
+); 
 
 export const PointsRoutes = router;
