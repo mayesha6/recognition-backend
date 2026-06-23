@@ -1,7 +1,10 @@
 import { stripe } from "../../config/stripe";
+import { getCurrentQuarter } from "../../utils/wallet";
+import { Plan } from "../plan/plan.model";
 import { SubscriptionStatus } from "../subscription/subscription.interface";
 import { Subscription } from "../subscription/subscription.model";
 import { User } from "../user/user.model";
+import { Wallet } from "../wallet/wallet.model";
 import { WebhookEvent } from "./webhook.model";
 
 export const handleStripeWebhook = async (event: any) => {
@@ -23,6 +26,7 @@ export const handleStripeWebhook = async (event: any) => {
 
       if (!userId || !planId) return;
 
+      // ১. সাবস্ক্রিপশন আপডেট
       await Subscription.findOneAndUpdate(
         { stripeSubscriptionId: stripeObject.id },
         {
@@ -37,11 +41,37 @@ export const handleStripeWebhook = async (event: any) => {
         { upsert: true }
       );
 
+      // ২. ইউজার আপডেট
       await User.findByIdAndUpdate(userId, {
         stripeSubscriptionId: stripeObject.id,
         subscriptionStatus: stripeObject.status === "trialing" ? SubscriptionStatus.TRIAL : SubscriptionStatus.ACTIVE,
         currentPlan: planId,
       });
+
+      // ==========================================
+      // 🔥 ৩. AUTOMATIC POINT ALLOCATION TO ORG ADMIN
+      // ==========================================
+      if (stripeObject.status === "active") {
+        const plan = await Plan.findById(planId);
+        if (plan && plan.allocatedPoints > 0) {
+          
+          const { year, quarter } = getCurrentQuarter(); // আপনার ইউটিলিটি ফাংশন
+
+          // অর্গানাইজেশন এডমিনের ওয়ালেটে পয়েন্ট অ্যাড করা
+          await Wallet.updateOne(
+            { user: userId, year, quarter },
+            {
+              $inc: {
+                pointsAllocated: plan.allocatedPoints,
+                pointsBalance: plan.allocatedPoints
+              },
+              $setOnInsert: { pointsUsed: 0 }
+            },
+            { upsert: true }
+          );
+          console.log(`✅ ${plan.allocatedPoints} points allocated to Org Admin: ${userId}`);
+        }
+      }
     }
 
     // =====================================
