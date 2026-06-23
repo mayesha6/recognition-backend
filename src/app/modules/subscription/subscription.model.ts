@@ -1,5 +1,5 @@
 import { Schema, model, Types } from "mongoose";
-import { SubscriptionStatus } from "../user/user.interface";
+import { SubscriptionStatus } from "./subscription.interface";
 
 const subscriptionSchema = new Schema(
   {
