@@ -1,35 +1,92 @@
 import httpStatus from "http-status-codes";
 import AppError from "../../errorHelpers/AppError";
+import { JwtPayload } from "jsonwebtoken";
+import { Role } from "../user/user.interface";
 import { RecognitionValue } from "./recognitionValue.model";
 
-const createRecognitionValue= async (payload: any) => {
-  const recognitionValue = await RecognitionValue.create(payload);
+const createRecognitionValue = async (payload: any, user: JwtPayload) => {
+  let organizationId = null;
+
+  if (user.role === Role.ORGANIZATION_ADMIN) {
+    organizationId = user.userId;
+  }
+
+  // Prevent creating duplicate recognition values within the same organization context
+  const existingRecognitionValue = await RecognitionValue.findOne({ name: payload.name, organizationId });
+  if (existingRecognitionValue) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Recognition value with this name already exists");
+  }
+
+  const recognitionValue = await RecognitionValue.create({
+    ...payload,
+    organizationId,
+    createdBy: user.userId,
+  });
+
   return recognitionValue;
 };
 
-const getRecognitionValues = async () => {
-  return await RecognitionValue.find();
+const getRecognitionValues = async (user: JwtPayload) => {
+  const filter: any = {};
+
+  if (user.role === Role.SUPER_ADMIN) {
+    // Super Admin sees global individual tones by default, or all if needed.
+    // For this use case, let's return only global tones.
+    filter.organizationId = null;
+  } else if (user.role === Role.ORGANIZATION_ADMIN) {
+    filter.$or = [{ organizationId: null }, { organizationId: user.userId }];
+  } else {
+    filter.$or = [{ organizationId: null }, { organizationId: user.organizationId }];
+  }
+
+  return await RecognitionValue.find(filter).sort({ createdAt: -1 });
 };
 
-const updateRecognitionValue = async (id: string, payload: any) => {
-  const recognitionValue = await RecognitionValue.findByIdAndUpdate(id, payload, {
+const updateRecognitionValue = async (id: string, payload: any, user: JwtPayload) => {
+  const recognitionValue = await RecognitionValue.findById(id);
+
+  if (!recognitionValue) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recognition value not found");
+  }
+
+  // Isolation check: Ensure user can only update their own level's recognition value
+  if (user.role === Role.SUPER_ADMIN && recognitionValue.organizationId !== null) {
+    throw new AppError(httpStatus.FORBIDDEN, "Super Admin can only modify global recognition values");
+  }
+
+  if (user.role === Role.ORGANIZATION_ADMIN) {
+    if (!recognitionValue.organizationId || recognitionValue.organizationId.toString() !== user.userId) {
+      throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this recognition value");
+    }
+  }
+
+  const updatedRecognitionValue = await RecognitionValue.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
 
-  if (!recognitionValue) {
-    throw new AppError(httpStatus.NOT_FOUND, "Department not found");
-  }
-
-  return recognitionValue;
+  return updatedRecognitionValue;
 };
 
-const deleteRecognitionValue = async (id: string) => {
-  const recognitionValue = await RecognitionValue.findByIdAndDelete(id);
+const deleteRecognitionValue = async (id: string, user: JwtPayload) => {
+  const recognitionValue = await RecognitionValue.findById(id);
 
   if (!recognitionValue) {
-    throw new AppError(httpStatus.NOT_FOUND, "Department not found");
+    throw new AppError(httpStatus.NOT_FOUND, "Recognition value not found");
   }
+
+  // Isolation check: Ensure user can only delete their own level's recognition value
+  if (user.role === Role.SUPER_ADMIN && recognitionValue.organizationId !== null) {
+    throw new AppError(httpStatus.FORBIDDEN, "Super Admin can only delete global recognition values");
+  }
+
+  if (user.role === Role.ORGANIZATION_ADMIN) {
+    if (!recognitionValue.organizationId || recognitionValue.organizationId.toString() !== user.userId) {
+      throw new AppError(httpStatus.FORBIDDEN, "You cannot delete this recognition value");
+    }
+  }
+
+  await RecognitionValue.findByIdAndDelete(id);
 
   return recognitionValue;
 };
