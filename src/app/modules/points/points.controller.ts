@@ -5,20 +5,11 @@ import { PointsService } from "./points.services";
 import { sendResponse } from "../../utils/sendResponse";
 import { JwtPayload } from "jsonwebtoken";
 
-// const createTransaction = catchAsync(async (req: Request, res: Response) => {
-//     const transaction = await PointsService.createTransaction(req.body);
-
-//     sendResponse(res, {
-//         success: true,
-//         statusCode: httpStatus.CREATED,
-//         message: "Points transaction successful",
-//         data: transaction
-//     });
-// })
-
 const getUserTransactions = catchAsync(async (req: Request, res: Response) => {
     const { email } = req.params;
-    const transactions = await PointsService.getUserTransactions(email);
+    const decodedToken = req.user as JwtPayload;
+
+    const transactions = await PointsService.getUserTransactions(email, decodedToken);
 
     sendResponse(res, {
         success: true,
@@ -26,25 +17,25 @@ const getUserTransactions = catchAsync(async (req: Request, res: Response) => {
         message: "User transactions fetched",
         data: transactions
     });
-})
+});
+
 const getMyTransactions = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as JwtPayload;
-    const email = user.email
-    const transactions = await PointsService.getUserTransactions(email);
+    const transactions = await PointsService.getUserTransactions(user.email, user); // User checking their own
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
-        message: "User transactions fetched",
+        message: "Your transactions fetched",
         data: transactions
     });
-})
+});
 
 const getUserBalance = catchAsync(async (req: Request, res: Response) => {
-
     const { email } = req.params;
+    const decodedToken = req.user as JwtPayload;
 
-    const balance = await PointsService.getUserBalance(email);
+    const balance = await PointsService.getUserBalance(email, decodedToken);
 
     sendResponse(res, {
         success: true,
@@ -52,15 +43,11 @@ const getUserBalance = catchAsync(async (req: Request, res: Response) => {
         message: "User balance fetched",
         data: { balance }
     });
-
 });
 
 const getMyBalance = catchAsync(async (req: Request, res: Response) => {
-
     const user = req.user as JwtPayload;
-    const email = user.email
-
-    const balance = await PointsService.getUserBalance(email);
+    const balance = await PointsService.getUserBalance(user.email, user);
 
     sendResponse(res, {
         success: true,
@@ -68,11 +55,9 @@ const getMyBalance = catchAsync(async (req: Request, res: Response) => {
         message: "Your balance fetched",
         data: { balance }
     });
-
 });
 
 export const PointsController = {
-    // createTransaction,
     getUserTransactions,
     getUserBalance,
     getMyBalance,
