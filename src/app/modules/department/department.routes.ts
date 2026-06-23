@@ -1,30 +1,32 @@
-import { Router } from "express"
-import { DepartmentController } from "./department.controller"
-import { checkAuth } from "../../middlewares/checkAuth"
+import { Router } from "express";
+import { checkAuth } from "../../middlewares/checkAuth";
+import { Role } from "../user/user.interface"; // Assuming your Role enum is here
+import { DepartmentController } from "./department.controller";
 
-const router = Router()
+const router = Router();
 
 router.post(
-    "/",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    DepartmentController.createDepartment
-)
+  "/",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  DepartmentController.createDepartment
+);
 
-router.get( 
-    "/",
-    // checkAuth("ADMIN", "SUPER_ADMIN", "USER"),
-    DepartmentController.getDepartments
-)
+router.get(
+  "/",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER),
+  DepartmentController.getDepartments
+);
 
 router.patch(
-    "/update-department/:id",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    DepartmentController.updateDepartment
-)
-router.delete(
-    "/delete-department/:id",
-    checkAuth("ADMIN", "SUPER_ADMIN"),
-    DepartmentController.deleteDepartment
-)
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  DepartmentController.updateDepartment
+);
 
-export const DepartmentRoutes = router
+router.delete(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  DepartmentController.deleteDepartment
+);
+
+export const DepartmentRoutes = router;
