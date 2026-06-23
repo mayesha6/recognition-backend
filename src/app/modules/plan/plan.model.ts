@@ -9,6 +9,11 @@ const planSchema = new Schema<IPlan>(
       required: true,
       unique: true,
     },
+    userLimit: {
+      type: Number,
+      required: true,
+      default: 1, // ডিফল্ট ১ জন (শুধুমাত্র অর্গানাইজেশন এডমিনের জন্য)
+    },
     price: {
       type: Number,
       required: true,
@@ -38,17 +43,17 @@ const planSchema = new Schema<IPlan>(
       type: String,
       default: null,
     },
-access: {
+    access: {
       products: [
-  {
-    product: { type: Types.ObjectId, ref: "Product" },
-    fileAccess: {
-      type: String,
-      enum: ["basic", "pro", "vip"],
-      required: true,
-    },
-  },
-],
+        {
+          product: { type: Types.ObjectId, ref: "Product" },
+          fileAccess: {
+            type: String,
+            enum: ["basic", "pro", "vip"],
+            required: true,
+          },
+        },
+      ],
       courses: [{ type: Types.ObjectId, ref: "Course" }],
       bundles: [{ type: Types.ObjectId, ref: "Bundle" }],
     },
