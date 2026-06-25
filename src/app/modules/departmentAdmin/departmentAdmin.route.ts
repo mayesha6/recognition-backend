@@ -16,4 +16,13 @@ router.get(
     DeptAdminControllers.getAllDeptAdmins
 );
 
+router.patch("/:id", 
+    checkAuth(Role.ORGANIZATION_ADMIN), 
+    DeptAdminControllers.updateDeptAdmin
+);
+router.delete("/:id", 
+    checkAuth(Role.ORGANIZATION_ADMIN), 
+    DeptAdminControllers.deleteDeptAdmin
+);
+
 export const DeptAdminRoutes = router;
