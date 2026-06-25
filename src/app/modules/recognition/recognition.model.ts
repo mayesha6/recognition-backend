@@ -31,4 +31,5 @@ const recognitionSchema = new Schema<IRecognition>(
   { timestamps: true }
 );
 
+recognitionSchema.index({ organizationId: 1, createdAt: -1 });
 export const Recognition = model<IRecognition>("Recognition", recognitionSchema);

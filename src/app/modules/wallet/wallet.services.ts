@@ -56,6 +56,7 @@ const distributePoints = async (
     session.startTransaction();
 
     const { year, quarter } = getCurrentQuarter();
+    const orgId = decodedToken.organizationId || decodedToken.userId;
     const query: any = { department, isDeleted: false };
 
     // 🔐 ISOLATION LOGIC
@@ -86,13 +87,13 @@ const distributePoints = async (
     // 🔄 BULK UPDATE RECEIVERS
     const operations = users.map((user) => ({
       updateOne: {
-        filter: { user: user._id, year, quarter },
+        filter: { user: user._id, organizationId: orgId, year, quarter },
         update: {
           $inc: {
             pointsAllocated: points,
             pointsBalance: points,
           },
-          $setOnInsert: { pointsUsed: 0 },
+          $setOnInsert: { pointsUsed: 0, organizationId: orgId },
         },
         upsert: true,
       },
@@ -120,6 +121,7 @@ const setUserPoints = async (
   try {
     session.startTransaction();
     const { year, quarter } = getCurrentQuarter();
+    const orgId = decodedToken.organizationId || decodedToken.userId;
 
     const user = await User.findOne({ email, isDeleted: false }).session(session);
     if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
@@ -146,13 +148,13 @@ const setUserPoints = async (
 
     // 🔄 ADD TO RECEIVER (Using $inc to properly mathematically add the points)
     await Wallet.updateOne(
-      { user: user._id, year, quarter },
+      { user: user._id, organizationId: orgId, year, quarter },
       {
         $inc: {
           pointsAllocated: points,
           pointsBalance: points,
         },
-        $setOnInsert: { pointsUsed: 0 },
+        $setOnInsert: { pointsUsed: 0, organizationId: orgId },
       },
       { upsert: true, session }
     );
@@ -174,29 +176,39 @@ const resetPoints = async (department: string | undefined, decodedToken: JwtPayl
     session.startTransaction();
     const { year, quarter } = getCurrentQuarter();
 
-    const query: any = { isDeleted: false };
-    let departmentToReset = department;
+    // latest update: Unified query construction
+    const userQuery: any = { isDeleted: false };
+    let walletOrgId: mongoose.Types.ObjectId;
 
-    // 🔐 ISOLATION LOGIC
+    // 🔐 ISOLATION & AUTHORIZATION LOGIC
     if (decodedToken.role === Role.SUPER_ADMIN) {
-      query.accountType = AccountType.INDIVIDUAL;
-      if (department) query.department = department;
+      userQuery.accountType = AccountType.INDIVIDUAL;
+      if (department) userQuery.department = department;
+      // Super Admin এর ক্ষেত্রে orgId null হতে পারে বা নির্দিষ্ট হতে পারে
+      walletOrgId = decodedToken.userId; 
     } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
-      query.organizationId = decodedToken.userId;
-      if (department) query.department = department;
+      userQuery.organizationId = decodedToken.userId;
+      walletOrgId = decodedToken.userId;
+      if (department) userQuery.department = department;
     } else {
       throw new AppError(httpStatus.FORBIDDEN, "You do not have permission to reset points.");
     }
 
-    const users = await User.find(query).select("_id").session(session);
+    const users = await User.find(userQuery).select("_id").session(session);
     if (users.length === 0) {
       throw new AppError(httpStatus.NOT_FOUND, "No users found matching the criteria.");
     }
 
     const userIds = users.map((u) => u._id);
 
+    // latest update: Added organizationId filter in updateMany for strict isolation
     const result = await Wallet.updateMany(
-      { user: { $in: userIds }, year, quarter },
+      { 
+        user: { $in: userIds }, 
+        organizationId: walletOrgId, // Strict isolation
+        year, 
+        quarter 
+      },
       {
         $set: {
           pointsAllocated: 0,
