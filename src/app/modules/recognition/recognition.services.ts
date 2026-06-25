@@ -210,6 +210,7 @@ const getRecognitionHistory = async (
   // SaaS Isolation for History Fetching
   if (userToken.role === Role.USER) {
     // Regular users only see their own history
+    filter.organizationId = userToken.organizationId;
     filter.$or = [{ senderEmail: userToken.email }, { receiverEmail: userToken.email }];
   } else if (userToken.role === Role.ORGANIZATION_ADMIN || userToken.role === Role.DEPARTMENT_ADMIN) {
     // Admins can see the whole organization's history

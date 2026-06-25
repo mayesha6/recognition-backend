@@ -229,9 +229,31 @@ const resetPoints = async (department: string | undefined, decodedToken: JwtPayl
   }
 };
 
+// wallet.services.ts
+
+const updateDepartmentBudget = async (deptAdminId: string, additionalPoints: number, decodedToken: JwtPayload) => {
+    // latest update: Org Admin চাইলে বাজেট আপডেট করতে পারবে
+    const { year, quarter } = getCurrentQuarter();
+    
+    const wallet = await Wallet.findOneAndUpdate(
+        { user: deptAdminId, organizationId: decodedToken.userId, year, quarter },
+        { 
+            $inc: { 
+                pointsAllocated: additionalPoints, 
+                pointsBalance: additionalPoints 
+            } 
+        },
+        { new: true }
+    );
+    
+    if (!wallet) throw new AppError(httpStatus.NOT_FOUND, "Department admin wallet not found");
+    return wallet;
+};
+
 export const WalletServices = {
   getWallet,
   distributePoints,
   resetPoints,
   setUserPoints,
+  updateDepartmentBudget
 };
