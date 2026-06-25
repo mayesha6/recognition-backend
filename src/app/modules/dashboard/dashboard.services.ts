@@ -4,9 +4,12 @@ import { Recognition } from "../recognition/recognition.model";
 import { User } from "../user/user.model";
 import { Subscription } from "../subscription/subscription.model";
 import { PaymentHistory } from "../paymentHistory/paymentHistory.model"; // 🔥 Updated Import
-import { AccountType, IsActive } from "../user/user.interface";
+import { AccountType, IsActive, Role } from "../user/user.interface";
 import { SubscriptionStatus } from "../subscription/subscription.interface";
 import { ActivityLog } from "./dashboard.model";
+import { JwtPayload } from "jsonwebtoken";
+import mongoose from "mongoose";
+import { Wallet } from "../wallet/wallet.model";
 
 dayjs.extend(quarterOfYear);
 
@@ -135,7 +138,68 @@ const getReports = async (filters: any) => {
   };
 };
 
+const getOrgDashboard = async (userId: string) => {
+  const orgId = new mongoose.Types.ObjectId(userId);
+
+  const [
+    totalEmployees,
+    activeEmployees,
+    recognitionsSent,
+    pointsInCirculation,
+    topPerformers,
+    departmentPerformance
+  ] = await Promise.all([
+    User.countDocuments({ organizationId: orgId, role: Role.USER }),
+    User.countDocuments({ organizationId: orgId, role: Role.USER, isActive: IsActive.ACTIVE }),
+    Recognition.countDocuments({ organizationId: orgId }),
+    
+    // Wallet এ organizationId থাকলে এটি কাজ করবে
+    Wallet.aggregate([
+      { $match: { organizationId: orgId } },
+      { $group: { _id: null, total: { $sum: "$pointsBalance" } } }
+    ]),
+
+    // Top Performers
+    Recognition.aggregate([
+      { $match: { organizationId: orgId } },
+      { $group: { _id: "$receiverEmail", totalPoints: { $sum: "$points" } } },
+      { $sort: { totalPoints: -1 } },
+      { $limit: 5 },
+      // receiverEmail দিয়ে ইউজার জয়েন করা নিরাপদ, যদি receiverId সব সময় না থাকে
+      { 
+        $lookup: { 
+          from: "users", 
+          localField: "_id", // এখানে _id মানে receiverEmail
+          foreignField: "email", 
+          as: "user" 
+        } 
+      },
+      { $unwind: "$user" }
+    ]),
+
+    Recognition.aggregate([
+      { $match: { organizationId: orgId } },
+      { $group: { _id: "$department", count: { $sum: 1 } } },
+      { $project: { _id: 0, department: "$_id", count: 1 } }
+    ])
+  ]);
+
+  return {
+    overview: {
+      totalEmployees,
+      activeEmployees,
+      recognitionsSent,
+      pointsInCirculation: pointsInCirculation[0]?.total || 0,
+    },
+    topPerformers: topPerformers.map(p => ({
+      name: p.user.name,
+      points: p.totalPoints
+    })),
+    departmentPerformance,
+  };
+};
 export const DashboardServices = {
   getDashboard,
   getReports,
+  getOrgDashboard
 };

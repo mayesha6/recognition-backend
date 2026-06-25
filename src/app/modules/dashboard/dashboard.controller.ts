@@ -3,6 +3,7 @@ import httpStatus from "http-status-codes"
 import { catchAsync } from "../../utils/catchAsync"
 import { sendResponse } from "../../utils/sendResponse"
 import { DashboardServices } from "./dashboard.services"
+import { JwtPayload } from "jsonwebtoken"
 
 const getDashboard = catchAsync(async (req: Request, res: Response) => {
 
@@ -35,7 +36,21 @@ console.log("Reports result:", result)
   })
 })
 
+const getOrgDashboard = catchAsync(async (req: Request, res: Response) => {
+  const userToken = req.user as JwtPayload;
+  const userId = userToken.userId;
+  const result = await DashboardServices.getOrgDashboard(userId);
+  
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Organization dashboard data retrieved",
+    data: result
+  });
+});
+
 export const DashboardController = {
   getDashboard,
-  getReports
+  getReports,
+  getOrgDashboard
 }
