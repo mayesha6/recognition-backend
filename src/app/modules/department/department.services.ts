@@ -33,10 +33,8 @@ const getDepartments = async (user: JwtPayload) => {
     // Super Admin sees global individual tones by default, or all if needed.
     // For this use case, let's return only global tones.
     filter.organizationId = null;
-  } else if (user.role === Role.ORGANIZATION_ADMIN) {
-    filter.$or = [{ organizationId: null }, { organizationId: user.userId }];
   } else {
-    filter.$or = [{ organizationId: null }, { organizationId: user.organizationId }];
+    filter.organizationId = user.organizationId || user.userId;
   }
 
   return await Department.find(filter).sort({ createdAt: -1 });
