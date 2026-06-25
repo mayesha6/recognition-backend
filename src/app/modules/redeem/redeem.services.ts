@@ -11,6 +11,7 @@ import { QueryBuilder } from "../../utils/QueryBuiler";
 import { JwtPayload } from "jsonwebtoken";
 import { ClaimStatus } from "./redeem.interface";
 import { Role } from "../user/user.interface";
+import dayjs from "dayjs";
 
 const createClaim = async (rewardId: string, decodedToken: JwtPayload) => {
   const session = await mongoose.startSession();
@@ -109,29 +110,74 @@ const getClaims = async (query: Record<string, string>, decodedToken: JwtPayload
 };
 
 const getClaimStats = async (decodedToken: JwtPayload) => {
-  const filter: any = {};
+  const startOfMonth = dayjs().startOf("month").toDate();
+  const endOfMonth = dayjs().endOf("month").toDate();
 
+  let orgFilter: any = {};
+  let rewardFilter: any = {};
+
+  // ==========================================
+  // 🔐 ROLE BASED FILTERING
+  // ==========================================
   if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
-    filter.organizationId = new mongoose.Types.ObjectId(decodedToken.userId);
+    orgFilter.organizationId = new mongoose.Types.ObjectId(decodedToken.userId);
+    rewardFilter.$or = [{ organizationId: null }, { organizationId: decodedToken.userId }];
   } else if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
-    filter.organizationId = new mongoose.Types.ObjectId(decodedToken.organizationId);
-    filter.department = decodedToken.department;
+    orgFilter.organizationId = new mongoose.Types.ObjectId(decodedToken.organizationId);
+    orgFilter.department = decodedToken.department;
+    rewardFilter.$or = [{ organizationId: null }, { organizationId: decodedToken.organizationId }];
+  } else if (decodedToken.role === Role.SUPER_ADMIN) {
+    rewardFilter.organizationId = null; // Global rewards
   }
 
-  const stats = await RewardClaim.aggregate([
-    { $match: filter },
-    {
-      $group: {
-        _id: null,
-        pending: { $sum: { $cond: [{ $eq: ["$status", ClaimStatus.PENDING] }, 1, 0] } },
-        approved: { $sum: { $cond: [{ $eq: ["$status", ClaimStatus.APPROVED] }, 1, 0] } },
-        rejected: { $sum: { $cond: [{ $eq: ["$status", ClaimStatus.REJECTED] }, 1, 0] } },
-        totalPointsRedeemed: { $sum: { $cond: [{ $eq: ["$status", ClaimStatus.APPROVED] }, "$points", 0] } },
-      },
-    },
+  // অর্গানাইজেশনের ইউজারদের আইডি বের করা (Points in circulation এর জন্য)
+  const usersInOrg = await User.find(orgFilter).select("_id");
+  const userIds = usersInOrg.map((u) => u._id);
+
+  // ==========================================
+  // 🚀 FETCH ALL 4 STATS CONCURRENTLY
+  // ==========================================
+  const [
+    totalRewards,
+    pointsInCirculationData,
+    redemptionsThisMonth,
+    topRewardData
+  ] = await Promise.all([
+    
+    // ১. Total Rewards (অ্যাক্টিভ রিওয়ার্ডের সংখ্যা)
+    Reward.countDocuments({ ...rewardFilter, status: "Active" }),
+
+    // ২. Points in Circulation (ইউজারদের ওয়ালেটে থাকা অব্যবহৃত পয়েন্ট)
+    Wallet.aggregate([
+      { $match: { user: { $in: userIds } } },
+      { $group: { _id: null, totalPoints: { $sum: "$pointsBalance" } } }
+    ]),
+
+    // ৩. Redemptions This Month (এই মাসে কয়টি ক্লেইম অ্যাপ্রুভ হয়েছে)
+    RewardClaim.countDocuments({
+      ...orgFilter,
+      status: ClaimStatus.APPROVED,
+      createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+    }),
+
+    // ৪. Top Reward (সবচেয়ে বেশি ক্লেইম হওয়া রিওয়ার্ড)
+    RewardClaim.aggregate([
+      { $match: { ...orgFilter, status: ClaimStatus.APPROVED } },
+      { $group: { _id: "$reward", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 1 },
+      { $lookup: { from: "rewards", localField: "_id", foreignField: "_id", as: "rewardDetails" } },
+      { $unwind: "$rewardDetails" },
+      { $project: { _id: 0, name: "$rewardDetails.name", count: 1 } }
+    ])
   ]);
 
-  return stats[0] || { pending: 0, approved: 0, rejected: 0, totalPointsRedeemed: 0 };
+  return {
+    totalRewards,
+    pointsInCirculation: pointsInCirculationData[0]?.totalPoints || 0,
+    redemptionsThisMonth,
+    topReward: topRewardData[0]?.name || "N/A"
+  };
 };
 
 const updateClaimStatus = async (claimId: string, status: ClaimStatus, decodedToken: JwtPayload) => {
