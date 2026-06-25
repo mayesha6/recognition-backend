@@ -30,15 +30,12 @@ const getTones = async (user: JwtPayload) => {
   const filter: any = {};
 
   if (user.role === Role.SUPER_ADMIN) {
-    // Super Admin sees global individual tones by default, or all if needed.
-    // For this use case, let's return only global tones.
+    // Super Admin শুধু গ্লোবাল টোন দেখবে
     filter.organizationId = null;
-  } else if (user.role === Role.ORGANIZATION_ADMIN) {
-    // Org Admin sees global tones AND their own organization tones
-    filter.$or = [{ organizationId: null }, { organizationId: user.userId }];
   } else {
-    // DA and Regular Users see global tones AND their organization tones
-    filter.$or = [{ organizationId: null }, { organizationId: user.organizationId }];
+    // Org Admin, Dept Admin, এবং Regular Users শুধু তাদের নিজ নিজ অর্গানাইজেশনের টোন দেখবে
+    // গ্লোবাল ডাটা এখানে আসবে না
+    filter.organizationId = user.organizationId || user.userId;
   }
 
   return await Tone.find(filter).sort({ createdAt: -1 });
