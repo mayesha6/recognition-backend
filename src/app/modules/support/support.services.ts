@@ -1,0 +1,111 @@
+import httpStatus from "http-status-codes";
+import { SupportTicket } from "./support.model";
+import { User } from "../user/user.model";
+import AppError from "../../errorHelpers/AppError";
+import { QueryBuilder } from "../../utils/QueryBuiler";
+import { JwtPayload } from "jsonwebtoken";
+import { Role } from "../user/user.interface";
+import { TicketStatus } from "./support.interface";
+
+const createTicket = async (payload: any, userToken: JwtPayload) => {
+  const user = await User.findById(userToken.userId);
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+
+  const organizationId = user.organizationId || user._id;
+
+  const ticket = await SupportTicket.create({
+    ...payload,
+    user: user._id,
+    organizationId,
+  });
+
+  return ticket;
+};
+
+const getTicketStats = async (userToken: JwtPayload) => {
+  const filter: any = {};
+
+  if (userToken.role === Role.USER) {
+    filter.user = userToken.userId;
+  } else if (userToken.role === Role.ORGANIZATION_ADMIN) {
+    filter.organizationId = userToken.userId;
+  } else if (userToken.role === Role.DEPARTMENT_ADMIN) {
+    filter.organizationId = userToken.organizationId;
+    // Optional: add department filter if tickets should be strictly department-isolated
+  }
+
+  const stats = await SupportTicket.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        open: { $sum: { $cond: [{ $eq: ["$status", TicketStatus.OPEN] }, 1, 0] } },
+        pending: { $sum: { $cond: [{ $eq: ["$status", TicketStatus.PENDING] }, 1, 0] } },
+        resolved: { $sum: { $cond: [{ $in: ["$status", [TicketStatus.RESOLVED, TicketStatus.CLOSED]] }, 1, 0] } },
+      },
+    },
+  ]);
+
+  return stats[0] || { open: 0, pending: 0, resolved: 0 };
+};
+
+const getAllTickets = async (query: Record<string, string>, userToken: JwtPayload) => {
+  const filter: any = {};
+
+  if (userToken.role === Role.USER) {
+    filter.user = userToken.userId;
+  } else if (userToken.role === Role.ORGANIZATION_ADMIN) {
+    filter.organizationId = userToken.userId;
+  } else if (userToken.role === Role.DEPARTMENT_ADMIN) {
+    filter.organizationId = userToken.organizationId;
+  }
+
+  const queryBuilder = new QueryBuilder(
+    SupportTicket.find(filter).populate("user", "name email").populate("organizationId", "name"),
+    query
+  )
+    .search(["ticketId", "subject", "category", "description"])
+    .filter()
+    .sort()
+    .paginate();
+
+  const data = await queryBuilder.build();
+  const meta = await queryBuilder.getMeta();
+
+  return { data, meta };
+};
+
+const respondToTicket = async (ticketId: string, payload: any, userToken: JwtPayload) => {
+  const ticket = await SupportTicket.findOne({ ticketId });
+  if (!ticket) throw new AppError(httpStatus.NOT_FOUND, "Ticket not found");
+
+  // SaaS Isolation Check
+  if (userToken.role !== Role.SUPER_ADMIN) {
+    const orgId = userToken.role === Role.ORGANIZATION_ADMIN ? userToken.userId : userToken.organizationId;
+    if (ticket.organizationId?.toString() !== orgId && ticket.user.toString() !== userToken.userId) {
+      throw new AppError(httpStatus.FORBIDDEN, "Not authorized to access this ticket");
+    }
+  }
+
+  // Update Status & Priority
+  if (payload.status) ticket.status = payload.status;
+  if (payload.priority) ticket.priority = payload.priority;
+
+  // Add Response Message
+  if (payload.message) {
+    ticket.responses.push({
+      message: payload.message,
+      sender: userToken.userId as any,
+    });
+  }
+
+  await ticket.save();
+  return ticket;
+};
+
+export const SupportServices = {
+  createTicket,
+  getTicketStats,
+  getAllTickets,
+  respondToTicket,
+};
