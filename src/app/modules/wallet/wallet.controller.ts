@@ -67,9 +67,26 @@ const setUserPoints = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// wallet.controller.ts
+
+const updateDepartmentBudget = catchAsync(async (req: Request, res: Response) => {
+    const { deptAdminId, points } = req.body;
+    const decodedToken = req.user as JwtPayload;
+
+    const result = await WalletServices.updateDepartmentBudget(deptAdminId, points, decodedToken);
+    
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Budget updated successfully",
+        data: result
+    });
+});
+
 export const WalletController = {
   getWallet,
   distributePoints,
   resetPoints,
   setUserPoints,
+  updateDepartmentBudget
 };
