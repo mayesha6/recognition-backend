@@ -31,11 +31,10 @@ const getCategories = async (user: JwtPayload) => {
   const filter: any = {};
 
   if (user.role === Role.SUPER_ADMIN) {
-    filter.organizationId = null; // Only global categories
-  } else if (user.role === Role.ORGANIZATION_ADMIN) {
-    filter.$or = [{ organizationId: null }, { organizationId: user.userId }];
+    filter.organizationId = null; 
   } else {
-    filter.$or = [{ organizationId: null }, { organizationId: user.organizationId }];
+    // শুধুমাত্র ওই অর্গানাইজেশনের ক্যাটাগরিগুলো দেখাবে
+    filter.organizationId = user.organizationId || user.userId;
   }
 
   return await Category.find(filter).sort({ createdAt: -1 });
