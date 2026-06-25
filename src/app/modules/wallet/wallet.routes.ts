@@ -29,4 +29,11 @@ router.post(
   WalletController.setUserPoints
 );
 
+// wallet.route.ts
+
+router.patch(
+  "/update-budget",
+  checkAuth(Role.ORGANIZATION_ADMIN), // latest update: restricted to Org Admin
+  WalletController.updateDepartmentBudget
+);
 export const WalletRoutes = router;
