@@ -21,7 +21,28 @@ const getAllDeptAdmins = catchAsync(async (req, res) => {
     data: result });
 });
 
+const updateDeptAdmin = catchAsync(async (req, res) => {
+  const result = await DeptAdminServices.updateDeptAdmin(req.params.id, req.body, req.user);
+  sendResponse(res, { 
+    success: true, 
+    statusCode: httpStatus.OK,
+    message: "Updated Dept Admin successfully", 
+    data: result });
+});
+
+const deleteDeptAdmin = catchAsync(async (req, res) => {
+  await DeptAdminServices.deleteDeptAdmin(req.params.id, req.user);
+  sendResponse(res, { 
+    success: true, 
+    statusCode: httpStatus.OK,
+    message: "Deleted Dept Admin successfully",
+    data: null
+});
+});
+
 export const DeptAdminControllers = { 
     createDeptAdmin, 
-    getAllDeptAdmins 
+    getAllDeptAdmins,
+    updateDeptAdmin,
+    deleteDeptAdmin
 };
