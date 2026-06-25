@@ -1,5 +1,6 @@
 import { stripe } from "../../config/stripe";
 import { getCurrentQuarter } from "../../utils/wallet";
+import { PaymentHistory } from "../paymentHistory/paymentHistory.model";
 import { Plan } from "../plan/plan.model";
 import { SubscriptionStatus } from "../subscription/subscription.interface";
 import { Subscription } from "../subscription/subscription.model";
@@ -101,8 +102,8 @@ export const handleStripeWebhook = async (event: any) => {
       if (!stripeObject.subscription) return;
 
       const sub = await stripe.subscriptions.retrieve(stripeObject.subscription);
-
-      await Subscription.findOneAndUpdate(
+      
+      const subscriptionRecord = await Subscription.findOneAndUpdate(
         { stripeSubscriptionId: sub.id },
         {
           status: SubscriptionStatus.ACTIVE,
@@ -111,6 +112,18 @@ export const handleStripeWebhook = async (event: any) => {
             : null,
         }
       );
+
+      // 🔥 পেমেন্ট হিস্ট্রি সেভ করা (ড্যাশবোর্ড রেভিনিউ ক্যালকুলেশনের জন্য)
+      if (subscriptionRecord) {
+        await PaymentHistory.create({
+          organizationId: subscriptionRecord.user,
+          planId: subscriptionRecord.plan,
+          stripeSubscriptionId: sub.id,
+          amount: stripeObject.amount_paid / 100, // Stripe সেন্টে (cents) এমাউন্ট দেয়, তাই 100 দিয়ে ভাগ করতে হবে
+          currency: stripeObject.currency,
+          status: "PAID"
+        });
+      }
     }
 
     // =====================================

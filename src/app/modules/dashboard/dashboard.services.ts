@@ -1,193 +1,141 @@
-import dayjs from "dayjs"
-import quarterOfYear from "dayjs/plugin/quarterOfYear"
-import { Recognition } from "../recognition/recognition.model"
-import { User } from "../user/user.model"
-import { IsActive } from "../user/user.interface"
+import dayjs from "dayjs";
+import quarterOfYear from "dayjs/plugin/quarterOfYear";
+import { Recognition } from "../recognition/recognition.model";
+import { User } from "../user/user.model";
+import { Subscription } from "../subscription/subscription.model";
+import { PaymentHistory } from "../paymentHistory/paymentHistory.model"; // 🔥 Updated Import
+import { AccountType, IsActive } from "../user/user.interface";
+import { SubscriptionStatus } from "../subscription/subscription.interface";
+import { ActivityLog } from "./dashboard.model";
 
-dayjs.extend(quarterOfYear)
+dayjs.extend(quarterOfYear);
 
 const getDashboard = async () => {
+  const startOfMonth = dayjs().startOf("month").toDate();
+  const endOfMonth = dayjs().endOf("month").toDate();
+  const startOfYear = dayjs().startOf("year").toDate();
+  const endOfYear = dayjs().endOf("year").toDate();
 
-  const startOfQuarter = dayjs().startOf("quarter").toDate()
-  const endOfQuarter = dayjs().endOf("quarter").toDate()
+  const [
+    totalOrganizations,
+    totalDepartmentsArray,
+    activeUsers,
+    activeSubscriptions,
+    monthlyRevenueData,
+    totalRecognitions,
+    platformPerformance,
+    revenueGrowth,
+    planDistribution,
+    recentActivities,
+  ] = await Promise.all([
+    User.countDocuments({ accountType: AccountType.ORGANIZATION }),
+    User.distinct("department"),
+    User.countDocuments({ isActive: IsActive.ACTIVE, accountType: AccountType.INDIVIDUAL }),
+    Subscription.countDocuments({ status: SubscriptionStatus.ACTIVE }),
+    
+    // 🔥 Monthly Revenue (Current Month)
+    PaymentHistory.aggregate([
+      { $match: { status: "PAID", createdAt: { $gte: startOfMonth, $lte: endOfMonth } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]),
 
-  // total recognition
-  const totalRecognitions = await Recognition.countDocuments({
-    createdAt: { $gte: startOfQuarter, $lte: endOfQuarter }
-  })
+    Recognition.countDocuments({ createdAt: { $gte: startOfYear, $lte: endOfYear } }),
 
-  // points distributed
-  const pointsData = await Recognition.aggregate([
-    {
-      $match: {
-        createdAt: { $gte: startOfQuarter, $lte: endOfQuarter }
-      }
-    },
-    {
-      $group: {
-        _id: null,
-        totalPoints: { $sum: "$points" }
-      }
-    }
-  ])
+    Recognition.aggregate([
+      { $match: { createdAt: { $gte: startOfYear, $lte: endOfYear } } },
+      { $group: { _id: { $month: "$createdAt" }, total: { $sum: 1 } } },
+      { $sort: { "_id": 1 } }
+    ]),
 
-  const pointsDistributed = pointsData[0]?.totalPoints || 0
+    // 🔥 Revenue Growth Line Chart (Current Year)
+    PaymentHistory.aggregate([
+      { $match: { status: "PAID", createdAt: { $gte: startOfYear, $lte: endOfYear } } },
+      { $group: { _id: { $month: "$createdAt" }, total: { $sum: "$amount" } } },
+      { $sort: { "_id": 1 } }
+    ]),
 
-  // active users
-  const activeUsers = await User.countDocuments({
-    isActive: IsActive.ACTIVE
-  })
+    Subscription.aggregate([
+      { $match: { status: SubscriptionStatus.ACTIVE } },
+      { $lookup: { from: "plans", localField: "plan", foreignField: "_id", as: "planData" } },
+      { $unwind: "$planData" },
+      { $group: { _id: "$planData.name", count: { $sum: 1 } } }
+    ]),
 
-  // weekly recognition graph
-  const weeklyGraph = await Recognition.aggregate([
-    {
-      $match: {
-        createdAt: { $gte: startOfQuarter, $lte: endOfQuarter }
-      }
-    },
-    {
-      $group: {
-        _id: { $week: "$createdAt" },
-        total: { $sum: 1 }
-      }
-    },
-    {
-      $sort: { "_id": 1 }
-    }
-  ])
+    ActivityLog.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("organizationId", "name picture")
+  ]);
 
-  // top recognized users
-  const topRecognized = await Recognition.aggregate([
-    {
-      $match: {
-        createdAt: { $gte: startOfQuarter, $lte: endOfQuarter }
-      }
-    },
-    {
-      $group: {
-        _id: "$receiverEmail",
-        totalPoints: { $sum: "$points" },
-        totalRecognitions: { $sum: 1 }
-      }
-    },
-    {
-      $sort: { totalPoints: -1 }
-    },
-    {
-      $limit: 5
-    }
-  ])
+  const monthlyRevenue = monthlyRevenueData[0]?.total || 0;
+  const totalDepartments = totalDepartmentsArray.length;
 
   return {
-    totalRecognitions,
-    pointsDistributed,
-    activeUsers,
-    weeklyGraph,
-    topRecognized
-  }
-}
+    overview: {
+      totalOrganizations,
+      totalDepartments,
+      activeUsers,
+      activeSubscriptions,
+      monthlyRevenue,
+      totalRecognitions,
+    },
+    charts: {
+      platformPerformance,
+      revenueGrowth,
+      planDistribution,
+    },
+    recentActivities,
+  };
+};
 
 const getReports = async (filters: any) => {
-
-  const { startDate, endDate, department } = filters
-console.log("Received filters in getReports:", filters)
-  const matchStage: any = {}
+  const { startDate, endDate, department } = filters;
+  const matchStage: any = {};
 
   if (department) {
-    matchStage.department = department
+    matchStage.department = department;
   }
-  console.log("Match stage after department filter:", matchStage)
-  console.log("department filter:", department)
 
   if (startDate && endDate) {
     matchStage.createdAt = {
       $gte: new Date(startDate),
-      $lte: new Date(endDate)
-    }
+      $lte: new Date(endDate),
+    };
   }
 
-  // 🔥 Department chart
-const departmentData = await Recognition.aggregate([
-  { $match: matchStage },
+  // Department Chart
+  const departmentData = await Recognition.aggregate([
+    { $match: matchStage },
+    { $lookup: { from: "users", localField: "receiverEmail", foreignField: "email", as: "receiver" } },
+    { $unwind: "$receiver" },
+    { $group: { _id: "$receiver.department", total: { $sum: 1 } } },
+    { $project: { _id: 0, department: "$_id", total: 1 } }
+  ]);
 
-  // 👇 receiverEmail দিয়ে user join
-  {
-    $lookup: {
-      from: "users",
-      localField: "receiverEmail",
-      foreignField: "email",
-      as: "receiver"
-    }
-  },
+  // Value Pie Chart
+  const valueData = await Recognition.aggregate([
+    { $match: matchStage },
+    { $match: { recognition_values: { $exists: true, $ne: [] } } },
+    { $unwind: "$recognition_values" },
+    { $group: { _id: "$recognition_values", count: { $sum: 1 } } }
+  ]);
 
-  { $unwind: "$receiver" },
-
-  {
-    $group: {
-      _id: "$receiver.department",
-      total: { $sum: 1 }
-    }
-  },
-
-  {
-    $project: {
-      _id: 0,
-      department: "$_id",
-      total: 1
-    }
-  }
-])
-  console.log("Department data:", departmentData)
-
-  // 🔥 Value pie chart
-  const totalCount = await Recognition.countDocuments(matchStage)
-console.log("Docs with recognition_values:", totalCount)
-const valueData = await Recognition.aggregate([
-  { $match: matchStage },
-
-  {
-    $match: {
-      recognition_values: { $exists: true, $ne: [] }
-    }
-  },
-
-  { $unwind: "$recognition_values" },
-
-  {
-    $group: {
-      _id: "$recognition_values",
-      count: { $sum: 1 }
-    }
-  }
-])
-
-  // 🔥 Line chart
+  // Line Chart Trend
   const trendData = await Recognition.aggregate([
     { $match: matchStage },
-    {
-      $group: {
-        _id: { $month: "$createdAt" },
-        totalPoints: { $sum: "$points" }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        month: "$_id",
-        totalPoints: 1
-      }
-    },
+    { $group: { _id: { $month: "$createdAt" }, totalPoints: { $sum: "$points" } } },
+    { $project: { _id: 0, month: "$_id", totalPoints: 1 } },
     { $sort: { month: 1 } }
-  ])
+  ]);
 
   return {
     departmentData,
     valueData,
-    trendData
-  }
-}
+    trendData,
+  };
+};
 
 export const DashboardServices = {
   getDashboard,
-  getReports
-}
+  getReports,
+};
