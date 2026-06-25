@@ -1,4 +1,4 @@
-import { Schema, model, Types } from "mongoose";
+import { Schema, model, Types, CallbackWithoutResultAndOptionalError } from "mongoose";
 import { IRewardClaim, ClaimStatus } from "./redeem.interface";
 
 const rewardClaimSchema = new Schema<IRewardClaim>(
@@ -19,7 +19,7 @@ const rewardClaimSchema = new Schema<IRewardClaim>(
 );
 
 // Auto-generate a unique Claim ID before saving
-rewardClaimSchema.pre("validate", function (next) {
+rewardClaimSchema.pre("validate", function (next: CallbackWithoutResultAndOptionalError) {
   if (!this.claimId) {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     this.claimId = `CLM-${randomNum}`;
