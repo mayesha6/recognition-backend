@@ -11,6 +11,10 @@ import { AiMessengerRoutes } from "../modules/aiMessenger/aiMessenger.route"
 import { DepartmentRoutes } from "../modules/department/department.routes"
 import { ToneRoutes } from "../modules/tone/tone.routes"
 import { RecognitionValueRoutes } from "../modules/recognitionValue/recognitionValue.routes"
+import { RewardRoutes } from "../modules/reward/reward.route"
+import { RedeemRoutes } from "../modules/redeem/redeem.route"
+import { PlanRoutes } from "../modules/plan/plan.routes"
+import { SubscriptionRoutes } from "../modules/subscription/subscription.routes"
 
 
 export const router = Router()
@@ -63,6 +67,22 @@ const moduleRoutes = [
     {
         path: "/ai",
         route: AiMessengerRoutes
+    },
+    {
+        path: "/reward",
+        route: RewardRoutes
+    },
+    {
+        path: "/redeem",
+        route: RedeemRoutes
+    },
+    {
+        path: "/plan",
+        route: PlanRoutes
+    },
+    {
+        path: "/subscription",
+        route: SubscriptionRoutes
     },
 
 

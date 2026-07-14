@@ -9,11 +9,11 @@ import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 import notFound from "./app/middlewares/notFound";
 import { router } from "./app/routes";
 import { walletPoints } from "./app/cron/walletPoints";
-import { sesWebhookController } from "./app/modules/ses/ses.controller";
+import { WebhookController } from "./app/modules/webhook/webhook.controller";
 
 const app = express()
 
-app.post("/api/v1/ses/webhook", sesWebhookController);
+app.post("/webhook", WebhookController.stripeWebhook);
 
 app.use(expressSession({
     secret: envVars.EXPRESS_SESSION_SECRET,
