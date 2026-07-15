@@ -35,7 +35,7 @@ router.patch(
 );
 router.get(
   "/:id",
-  checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.SUPER_ADMIN, Role.USER),
   UserControllers.getSingleUser
 );
 router.patch(
