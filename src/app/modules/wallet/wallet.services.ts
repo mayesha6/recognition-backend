@@ -56,7 +56,7 @@ const distributePoints = async (
     session.startTransaction();
 
     const { year, quarter } = getCurrentQuarter();
-    const orgId = decodedToken.organizationId || decodedToken.userId;
+    const orgId = new mongoose.Types.ObjectId(decodedToken.organizationId || decodedToken.userId);
     const query: any = { department, isDeleted: false };
 
     // 🔐 ISOLATION LOGIC
@@ -121,7 +121,7 @@ const setUserPoints = async (
   try {
     session.startTransaction();
     const { year, quarter } = getCurrentQuarter();
-    const orgId = decodedToken.organizationId || decodedToken.userId;
+    const orgId = new mongoose.Types.ObjectId(decodedToken.organizationId || decodedToken.userId);
 
     const user = await User.findOne({ email, isDeleted: false }).session(session);
     if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
@@ -185,10 +185,10 @@ const resetPoints = async (department: string | undefined, decodedToken: JwtPayl
       userQuery.accountType = AccountType.INDIVIDUAL;
       if (department) userQuery.department = department;
       // Super Admin এর ক্ষেত্রে orgId null হতে পারে বা নির্দিষ্ট হতে পারে
-      walletOrgId = decodedToken.userId; 
+      walletOrgId = new mongoose.Types.ObjectId(decodedToken.userId); 
     } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
       userQuery.organizationId = decodedToken.userId;
-      walletOrgId = decodedToken.userId;
+      walletOrgId = new mongoose.Types.ObjectId(decodedToken.userId);
       if (department) userQuery.department = department;
     } else {
       throw new AppError(httpStatus.FORBIDDEN, "You do not have permission to reset points.");
@@ -236,7 +236,7 @@ const updateDepartmentBudget = async (deptAdminId: string, additionalPoints: num
     const { year, quarter } = getCurrentQuarter();
     
     const wallet = await Wallet.findOneAndUpdate(
-        { user: deptAdminId, organizationId: decodedToken.userId, year, quarter },
+        { user: deptAdminId, organizationId: new mongoose.Types.ObjectId(decodedToken.userId), year, quarter },
         { 
             $inc: { 
                 pointsAllocated: additionalPoints, 
