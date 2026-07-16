@@ -41,6 +41,7 @@ export interface IUser {
   isVerified?: boolean;
   role: Role;
   department: string; 
+  phone?: string;
   accountType: AccountType;
   status: AccountStatus;
   auths: IAuthProvider[];

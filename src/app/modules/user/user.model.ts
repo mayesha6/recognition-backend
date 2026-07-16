@@ -22,6 +22,7 @@ const userSchema = new Schema<IUser>({
         default: Role.USER
     },
     department: { type: String, required: false, default: "Personal Account" },
+    phone: { type: String, required: false },
     accountType: {
         type: String,
         enum: Object.values(AccountType),
