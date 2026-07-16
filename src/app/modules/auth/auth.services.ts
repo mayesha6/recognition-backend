@@ -123,6 +123,9 @@ const setPassword = async (userId: string, plainPassword: string) => {
 
 }
 const changePassword = async (oldPassword: string, newPassword: string, confirmPassword: string, decodedToken: JwtPayload) => {
+  if (newPassword.length < 6) {
+    throw new AppError(400, "New password must be at least 6 characters long");
+  }
   if (newPassword !== confirmPassword) {
     throw new AppError(400, "Passwords do not match");
   }

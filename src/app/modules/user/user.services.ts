@@ -343,6 +343,10 @@ const updateMyProfile = async ({
       throw new AppError(400, "All password fields are required");
     }
 
+    if (newPassword.length < 6) {
+      throw new AppError(400, "New password must be at least 6 characters long");
+    }
+
     if (newPassword !== confirmPassword) {
       throw new AppError(400, "Passwords do not match");
     }
