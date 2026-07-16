@@ -30,11 +30,14 @@ const createCategory = async (payload: any, user: JwtPayload) => {
 const getCategories = async (user: JwtPayload) => {
   const filter: any = {};
 
-  if (user.role === Role.SUPER_ADMIN) {
-    filter.organizationId = null; 
+  const orgId = user.organizationId || (user.role === Role.ORGANIZATION_ADMIN ? user.userId : null);
+
+  if (orgId) {
+    // অর্গানাইজেশনের আন্ডারে থাকা ইউজাররা শুধুমাত্র অর্গানাইজেশন এডমিনের ক্রিয়েট করা ক্যাটাগরি দেখবে
+    filter.organizationId = orgId;
   } else {
-    // শুধুমাত্র ওই অর্গানাইজেশনের ক্যাটাগরিগুলো দেখাবে
-    filter.organizationId = user.organizationId || user.userId;
+    // ইন্ডিভিজুয়াল টাইপ ইউজার এবং সুপার এডমিনরা সুপার এডমিনের ক্রিয়েট করা গ্লোবাল ক্যাটাগরি দেখবে
+    filter.organizationId = null;
   }
 
   return await Category.find(filter).sort({ createdAt: -1 });

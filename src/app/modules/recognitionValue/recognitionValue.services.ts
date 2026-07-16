@@ -29,12 +29,14 @@ const createRecognitionValue = async (payload: any, user: JwtPayload) => {
 const getRecognitionValues = async (user: JwtPayload) => {
   const filter: any = {};
 
-  if (user.role === Role.SUPER_ADMIN) {
-    // Super Admin sees global individual tones by default, or all if needed.
-    // For this use case, let's return only global tones.
+  const orgId = user.organizationId || (user.role === Role.ORGANIZATION_ADMIN ? user.userId : null);
+
+  if (orgId) {
+    // অর্গানাইজেশনের আন্ডারে থাকা ইউজাররা শুধুমাত্র অর্গানাইজেশন এডমিনের ক্রিয়েট করা ভ্যালু দেখবে
+    filter.organizationId = orgId;
+  } else {
+    // ইন্ডিভিজুয়াল টাইপ ইউজার এবং সুপার এডমিনরা সুপার এডমিনের ক্রিয়েট করা গ্লোবাল ভ্যালু দেখবে
     filter.organizationId = null;
-  }else {
-    filter.organizationId = user.organizationId || user.userId;
   }
 
   return await RecognitionValue.find(filter).sort({ createdAt: -1 });

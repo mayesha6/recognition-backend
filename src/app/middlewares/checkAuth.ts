@@ -67,6 +67,8 @@ export const checkAuth = (...authRoles: string[]) => async (req: Request, res: R
             email: isUserExist.email,
             role: isUserExist.role,
             department: isUserExist.department,
+            organizationId: isUserExist.organizationId,
+            accountType: isUserExist.accountType,
         };
         next()
 
