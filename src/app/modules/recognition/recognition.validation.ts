@@ -5,7 +5,7 @@ const sendRecognitionValidation = z.object({
   image: z.string({
     message: "Image is required"
   }),
-  points: z.number().min(1),
+  points: z.number().min(1, "Points must be at least 1 to send recognition"),
   message: z.string({
     message: "Message is required"
   }).optional(),
