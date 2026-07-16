@@ -87,13 +87,14 @@ const distributePoints = async (
     // 🔄 BULK UPDATE RECEIVERS
     const operations = users.map((user) => ({
       updateOne: {
-        filter: { user: user._id, organizationId: orgId, year, quarter },
+        filter: { user: user._id, year, quarter },
         update: {
           $inc: {
             pointsAllocated: points,
             pointsBalance: points,
           },
-          $setOnInsert: { pointsUsed: 0, organizationId: orgId },
+          $set: { organizationId: orgId },
+          $setOnInsert: { pointsUsed: 0 },
         },
         upsert: true,
       },
@@ -148,13 +149,14 @@ const setUserPoints = async (
 
     // 🔄 ADD TO RECEIVER (Using $inc to properly mathematically add the points)
     await Wallet.updateOne(
-      { user: user._id, organizationId: orgId, year, quarter },
+      { user: user._id, year, quarter },
       {
         $inc: {
           pointsAllocated: points,
           pointsBalance: points,
         },
-        $setOnInsert: { pointsUsed: 0, organizationId: orgId },
+        $set: { organizationId: orgId },
+        $setOnInsert: { pointsUsed: 0 },
       },
       { upsert: true, session }
     );
@@ -234,14 +236,20 @@ const resetPoints = async (department: string | undefined, decodedToken: JwtPayl
 const updateDepartmentBudget = async (deptAdminId: string, additionalPoints: number, decodedToken: JwtPayload) => {
     // latest update: Org Admin চাইলে বাজেট আপডেট করতে পারবে
     const { year, quarter } = getCurrentQuarter();
+
+    const deptAdmin = await User.findOne({ _id: deptAdminId, isDeleted: false });
+    if (!deptAdmin || (deptAdmin.organizationId?.toString() || deptAdmin._id.toString()) !== decodedToken.userId) {
+        throw new AppError(httpStatus.FORBIDDEN, "Department admin does not belong to your organization.");
+    }
     
     const wallet = await Wallet.findOneAndUpdate(
-        { user: deptAdminId, organizationId: new mongoose.Types.ObjectId(decodedToken.userId), year, quarter },
+        { user: deptAdminId, year, quarter },
         { 
             $inc: { 
                 pointsAllocated: additionalPoints, 
                 pointsBalance: additionalPoints 
-            } 
+            },
+            $set: { organizationId: new mongoose.Types.ObjectId(decodedToken.userId) }
         },
         { new: true }
     );

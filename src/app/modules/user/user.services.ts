@@ -126,6 +126,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
 
   const wallet = await Wallet.create({
     user: user._id,
+    organizationId: user.organizationId || user._id,
     quarter,
     year,
     pointsAllocated: 0,
