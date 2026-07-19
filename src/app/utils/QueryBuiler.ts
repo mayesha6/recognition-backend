@@ -184,7 +184,7 @@ console.log("FILTER METHOD QUERY:", this.query);
   // =====================================
   async getMeta() {
     const totalDocuments = await this.baseQuery.model.countDocuments(
-      this.filterQuery
+      this.modelQuery.getFilter()
     );
 
     const page = Number(this.query.page) || 1;
