@@ -61,14 +61,14 @@ const getDepartments = async (user: JwtPayload) => {
       }
       const employees = await User.countDocuments(employeeFilter);
 
-      // Count recognitions associated with this department
-      const recognitionFilter: any = {
-        department: dept.name
-      };
-      if (dept.organizationId !== null) {
-        recognitionFilter.organizationId = dept.organizationId;
-      }
-      const recognitions = await Recognition.countDocuments(recognitionFilter);
+      // Get all user emails in this department
+      const usersInDept = await User.find(employeeFilter).select("email").lean();
+      const userEmails = usersInDept.map((u: any) => u.email);
+
+      // Count recognitions sent by users of this department
+      const recognitions = await Recognition.countDocuments({
+        senderEmail: { $in: userEmails }
+      });
 
       return {
         ...dept,
