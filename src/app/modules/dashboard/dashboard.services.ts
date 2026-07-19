@@ -4,6 +4,7 @@ import { Recognition } from "../recognition/recognition.model";
 import { User } from "../user/user.model";
 import { Subscription } from "../subscription/subscription.model";
 import { PaymentHistory } from "../paymentHistory/paymentHistory.model"; // 🔥 Updated Import
+import { Department } from "../department/department.model";
 import { AccountType, IsActive, Role } from "../user/user.interface";
 import { SubscriptionStatus } from "../subscription/subscription.interface";
 import { ActivityLog } from "./dashboard.model";
@@ -21,7 +22,7 @@ const getDashboard = async () => {
 
   const [
     totalOrganizations,
-    totalDepartmentsArray,
+    totalDepartments,
     activeUsers,
     activeSubscriptions,
     monthlyRevenueData,
@@ -32,7 +33,7 @@ const getDashboard = async () => {
     recentActivities,
   ] = await Promise.all([
     User.countDocuments({ accountType: AccountType.ORGANIZATION }),
-    User.distinct("department"),
+    Department.countDocuments({ organizationId: null }),
     User.countDocuments({ isActive: IsActive.ACTIVE, accountType: AccountType.INDIVIDUAL }),
     Subscription.countDocuments({ status: SubscriptionStatus.ACTIVE }),
     
@@ -71,7 +72,6 @@ const getDashboard = async () => {
   ]);
 
   const monthlyRevenue = monthlyRevenueData[0]?.total || 0;
-  const totalDepartments = totalDepartmentsArray.length;
 
   return {
     overview: {
@@ -147,10 +147,11 @@ const getOrgDashboard = async (userId: string) => {
     recognitionsSent,
     pointsInCirculation,
     topPerformers,
-    departmentPerformance
+    departmentPerformance,
+    totalDepartmentsArray
   ] = await Promise.all([
-    User.countDocuments({ organizationId: orgId, role: Role.USER }),
-    User.countDocuments({ organizationId: orgId, role: Role.USER, isActive: IsActive.ACTIVE }),
+    User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } }),
+    User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }, isActive: IsActive.ACTIVE }),
     Recognition.countDocuments({ organizationId: orgId }),
     
     // Wallet এ organizationId থাকলে এটি কাজ করবে
@@ -181,13 +182,16 @@ const getOrgDashboard = async (userId: string) => {
       { $match: { organizationId: orgId } },
       { $group: { _id: "$department", count: { $sum: 1 } } },
       { $project: { _id: 0, department: "$_id", count: 1 } }
-    ])
+    ]),
+
+    User.distinct("department", { organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } })
   ]);
 
   return {
     overview: {
       totalEmployees,
       activeEmployees,
+      totalDepartments: totalDepartmentsArray.length,
       recognitionsSent,
       pointsInCirculation: pointsInCirculation[0]?.total || 0,
     },
