@@ -4,6 +4,7 @@ import AppError from "../../errorHelpers/AppError";
 import { RewardClaim } from "./redeem.model";
 import { Reward } from "../reward/reward.model";
 import { User } from "../user/user.model";
+import { Notification } from "../notification/notification.model";
 import { Wallet } from "../wallet/wallet.model";
 import { PointsTransaction } from "../points/points.model";
 import { getCurrentQuarter } from "../../utils/wallet";
@@ -74,6 +75,25 @@ const createClaim = async (rewardId: string, decodedToken: JwtPayload) => {
     );
 
     await session.commitTransaction();
+
+    // Create notification for Org Admin(s)
+    try {
+      const orgAdmin = await User.findOne({ _id: user.organizationId, role: Role.ORGANIZATION_ADMIN }) || 
+                       await User.findOne({ organizationId: user.organizationId, role: Role.ORGANIZATION_ADMIN });
+      if (orgAdmin) {
+        await Notification.create({
+          recipient: orgAdmin._id,
+          sender: user._id,
+          title: "New Reward Claim Request",
+          message: `${user.name} submitted a claim for ${reward.name}`,
+          type: "CLAIM",
+          link: "/org-admin/reward-claim",
+        });
+      }
+    } catch (err) {
+      console.error("Failed to create claim notification:", err);
+    }
+
     return claim[0];
   } catch (error) {
     await session.abortTransaction();
@@ -239,6 +259,23 @@ const updateClaimStatus = async (claimId: string, status: ClaimStatus, decodedTo
     }
 
     await session.commitTransaction();
+
+    // Create notification for the user who claimed the reward
+    try {
+      const rewardDoc = await Reward.findById(claim.reward);
+      const rewardName = rewardDoc ? rewardDoc.name : "reward";
+      await Notification.create({
+        recipient: claim.user._id,
+        sender: decodedToken.userId,
+        title: `Claim Reward ${status}`,
+        message: `Your claim for "${rewardName}" has been ${status.toLowerCase()}`,
+        type: "CLAIM",
+        link: "/user/claim-rewards",
+      });
+    } catch (err) {
+      console.error("Failed to create claim decision notification:", err);
+    }
+
     return claim;
   } catch (error) {
     await session.abortTransaction();

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import httpStatus from "http-status-codes";
 import { Recognition } from "./recognition.model";
 import { User } from "../user/user.model";
+import { Notification } from "../notification/notification.model";
 import AppError from "../../errorHelpers/AppError";
 import { QueryBuilder } from "../../utils/QueryBuiler";
 import { PointsTransaction } from "../points/points.model";
@@ -178,6 +179,21 @@ const sendRecognition = async (
     aiMessage.status = RecognitionStatus.SENT;
     aiMessage.generated_message = finalMessage;
     await aiMessage.save();
+
+    // Create recipient notification
+    const sender = await User.findOne({ email: senderEmail });
+    const receiver = await User.findOne({ email: receiverEmail });
+    if (receiver) {
+      const senderName = sender ? sender.name : "A teammate";
+      await Notification.create({
+        recipient: receiver._id,
+        sender: sender ? sender._id : null,
+        title: "New Recognition Received",
+        message: `${senderName} recognized you with ${points} points!`,
+        type: "RECOGNITION",
+        link: "/user/received-recognition",
+      });
+    }
 
     await sendEmail({
       from: senderEmail,

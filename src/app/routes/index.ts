@@ -3,6 +3,7 @@ import { UserRoutes } from "../modules/user/user.routes"
 import { AuthRoutes } from "../modules/auth/auth.routes"
 import { OtpRoutes } from "../modules/otp/otp.routes"
 import { RecognitionRoutes } from "../modules/recognition/recognition.routes"
+import { NotificationRoutes } from "../modules/notification/notification.routes"
 import { PointsRoutes } from "../modules/points/points.routes"
 import { DashboardRoutes } from "../modules/dashboard/dashboard.routes"
 import { WalletRoutes } from "../modules/wallet/wallet.routes"
@@ -83,6 +84,10 @@ const moduleRoutes = [
     {
         path: "/subscription",
         route: SubscriptionRoutes
+    },
+    {
+        path: "/notification",
+        route: NotificationRoutes
     },
 
 

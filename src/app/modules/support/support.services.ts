@@ -1,6 +1,7 @@
 import httpStatus from "http-status-codes";
 import { SupportTicket } from "./support.model";
 import { User } from "../user/user.model";
+import { Notification } from "../notification/notification.model";
 import AppError from "../../errorHelpers/AppError";
 import { QueryBuilder } from "../../utils/QueryBuiler";
 import { JwtPayload } from "jsonwebtoken";
@@ -18,6 +19,23 @@ const createTicket = async (payload: any, userToken: JwtPayload) => {
     user: user._id,
     organizationId,
   });
+
+  // Create notifications for Super Admins
+  try {
+    const superAdmins = await User.find({ role: Role.SUPER_ADMIN });
+    for (const admin of superAdmins) {
+      await Notification.create({
+        recipient: admin._id,
+        sender: user._id,
+        title: "New Support Ticket",
+        message: `Org Admin ${user.name} created ticket: ${ticket.subject}`,
+        type: "SUPPORT",
+        link: "/super-admin/support",
+      });
+    }
+  } catch (err) {
+    console.error("Failed to create support ticket notifications:", err);
+  }
 
   return ticket;
 };
@@ -100,6 +118,39 @@ const respondToTicket = async (ticketId: string, payload: any, userToken: JwtPay
   }
 
   await ticket.save();
+
+  // Create notification for ticket response
+  try {
+    if (userToken.role === Role.SUPER_ADMIN) {
+      // Notify the ticket owner
+      await Notification.create({
+        recipient: ticket.user,
+        sender: userToken.userId as any,
+        title: "Support Ticket Updated",
+        message: `Your ticket ${ticket.ticketId} has received a new response.`,
+        type: "SUPPORT",
+        link: "/org-admin/support",
+      });
+    } else {
+      // Notify Super Admins
+      const superAdmins = await User.find({ role: Role.SUPER_ADMIN });
+      const senderUser = await User.findById(userToken.userId);
+      const senderName = senderUser ? senderUser.name : "Org Admin";
+      for (const admin of superAdmins) {
+        await Notification.create({
+          recipient: admin._id,
+          sender: userToken.userId as any,
+          title: "Support Ticket Response",
+          message: `${senderName} replied to ticket ${ticket.ticketId}`,
+          type: "SUPPORT",
+          link: "/super-admin/support",
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Failed to create support response notification:", err);
+  }
+
   return ticket;
 };
 
