@@ -13,6 +13,7 @@ const rewardSchema = new Schema<IReward>(
       default: RewardStatus.ACTIVE,
     },
     description: { type: String },
+    image: { type: String },
     
     // 🔥 Multi-tenant fields
     organizationId: {

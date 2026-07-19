@@ -12,6 +12,7 @@ export interface IReward {
   stock: number;
   status: RewardStatus;
   description?: string;
+  image?: string;
   
   // 🔥 SaaS Tracking
   organizationId?: Types.ObjectId | null;

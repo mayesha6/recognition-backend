@@ -9,6 +9,7 @@ const createRewardZodSchema = z.object({
   stock: z.number().min(0, "Stock cannot be negative"),
   status: z.nativeEnum(RewardStatus).optional(),
   description: z.string().optional(),
+  image: z.string().optional(),
 
 });
 
@@ -20,6 +21,7 @@ const updateRewardZodSchema = z.object({
   stock: z.number().min(0).optional(),
   status: z.nativeEnum(RewardStatus).optional(),
   description: z.string().optional(),
+  image: z.string().optional(),
 
 });
 
