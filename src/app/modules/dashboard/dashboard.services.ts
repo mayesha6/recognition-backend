@@ -73,6 +73,59 @@ const getDashboard = async () => {
 
   const monthlyRevenue = monthlyRevenueData[0]?.total || 0;
 
+  // Retrieve latest 3 organizations with employee counts, active subscription plan, and active status.
+  const latestOrganizations = await User.find({ accountType: AccountType.ORGANIZATION })
+    .sort({ createdAt: -1 })
+    .limit(3)
+    .lean();
+
+  const organizations = await Promise.all(
+    latestOrganizations.map(async (org) => {
+      const sub = await Subscription.findOne({ user: org._id, status: SubscriptionStatus.ACTIVE })
+        .populate("plan")
+        .lean();
+      
+      const employeesCount = await User.countDocuments({ 
+        organizationId: org._id, 
+        role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } 
+      });
+
+      return {
+        _id: org._id,
+        name: org.name,
+        email: org.email,
+        picture: org.picture,
+        employeesCount,
+        plan: sub ? (sub.plan as any).name : "Free",
+        status: org.isActive === IsActive.ACTIVE ? "Active" : "Trial",
+        createdAt: org.createdAt
+      };
+    })
+  );
+
+  // Retrieve top 3 departments with employee counts and active status.
+  const departments = await User.aggregate([
+    { $match: { accountType: AccountType.INDIVIDUAL, department: { $ne: null, $ne: "" } } },
+    { $group: { _id: "$department", employeesCount: { $sum: 1 } } },
+    { $sort: { employeesCount: -1 } },
+    { $limit: 3 },
+    {
+      $project: {
+        _id: 0,
+        name: "$_id",
+        employeesCount: 1,
+        status: { $literal: "Active" }
+      }
+    }
+  ]);
+
+  // Retrieve latest 3 individual users with their name, email, department, role, and active status.
+  const users = await User.find({ accountType: AccountType.INDIVIDUAL })
+    .sort({ createdAt: -1 })
+    .limit(3)
+    .select("name email department role isActive lastActive createdAt")
+    .lean();
+
   return {
     overview: {
       totalOrganizations,
@@ -88,6 +141,9 @@ const getDashboard = async () => {
       planDistribution,
     },
     recentActivities,
+    organizations,
+    departments,
+    users
   };
 };
 
