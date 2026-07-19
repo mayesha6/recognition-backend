@@ -1,4 +1,4 @@
-import { Schema, model, Types, CallbackWithoutResultAndOptionalError } from "mongoose";
+import { Schema, model, Types } from "mongoose";
 import { ISupportTicket, TicketPriority, TicketStatus } from "./support.interface";
 
 const ticketResponseSchema = new Schema(
@@ -33,12 +33,11 @@ const supportTicketSchema = new Schema<ISupportTicket>(
 );
 
 // Auto-generate a unique Ticket ID before saving
-supportTicketSchema.pre("validate", function (next: CallbackWithoutResultAndOptionalError) {
+supportTicketSchema.pre("validate", function () {
   if (!this.ticketId) {
     const randomNum = Math.floor(10000 + Math.random() * 90000);
     this.ticketId = `TCK-${randomNum}`;
   }
-  next();
 });
 
 export const SupportTicket = model<ISupportTicket>("SupportTicket", supportTicketSchema);
