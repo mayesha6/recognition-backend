@@ -26,18 +26,54 @@ const createDepartment = async (payload: any, user: JwtPayload) => {
   return department;
 };
 
+import { User } from "../user/user.model";
+import { Recognition } from "../recognition/recognition.model";
+
 const getDepartments = async (user: JwtPayload) => {
   const filter: any = {};
 
   if (user.role === Role.SUPER_ADMIN) {
-    // Super Admin sees global individual tones by default, or all if needed.
-    // For this use case, let's return only global tones.
     filter.organizationId = null;
   } else {
     filter.organizationId = user.organizationId || user.userId;
   }
 
-  return await Department.find(filter).sort({ createdAt: -1 });
+  const departments = await Department.find(filter).sort({ createdAt: -1 }).lean();
+
+  const enrichedDepartments = await Promise.all(
+    departments.map(async (dept: any) => {
+      // Find the department admin
+      const adminUser = await User.findOne({
+        department: dept.name,
+        role: Role.DEPARTMENT_ADMIN,
+        organizationId: dept.organizationId
+      }).lean();
+
+      // Count employees in this department
+      const employees = await User.countDocuments({
+        department: dept.name,
+        role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] },
+        organizationId: dept.organizationId
+      });
+
+      // Count recognitions associated with this department
+      const recognitions = await Recognition.countDocuments({
+        department: dept.name,
+        organizationId: dept.organizationId
+      });
+
+      return {
+        ...dept,
+        id: dept._id.toString(),
+        admin: adminUser ? adminUser.name : "N/A",
+        adminEmail: adminUser ? adminUser.email : "",
+        employees,
+        recognitions
+      };
+    })
+  );
+
+  return enrichedDepartments;
 };
 
 const updateDepartment = async (id: string, payload: any, user: JwtPayload) => {
