@@ -105,7 +105,7 @@ const getDashboard = async () => {
 
   // Retrieve top 3 departments with employee counts and active status.
   const departments = await User.aggregate([
-    { $match: { accountType: AccountType.INDIVIDUAL, department: { $ne: null, $ne: "" } } },
+    { $match: { accountType: AccountType.INDIVIDUAL, department: { $nin: [null, ""] } } },
     { $group: { _id: "$department", employeesCount: { $sum: 1 } } },
     { $sort: { employeesCount: -1 } },
     { $limit: 3 },
