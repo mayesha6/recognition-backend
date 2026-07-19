@@ -7,7 +7,12 @@ import { RewardServices } from "./reward.services";
 
 const createReward = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload;
-  const result = await RewardServices.createReward(req.body, user);
+  const file = (req.files as Express.MulterS3.File[])?.[0];
+  const payload = { ...req.body };
+  if (file) {
+    payload.image = file.location;
+  }
+  const result = await RewardServices.createReward(payload, user);
 
   sendResponse(res, {
     success: true,
@@ -33,7 +38,12 @@ const getAllRewards = catchAsync(async (req: Request, res: Response) => {
 const updateReward = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload;
   const id = req.params.id;
-  const result = await RewardServices.updateReward(id, req.body, user);
+  const file = (req.files as Express.MulterS3.File[])?.[0];
+  const payload = { ...req.body };
+  if (file) {
+    payload.image = file.location;
+  }
+  const result = await RewardServices.updateReward(id, payload, user);
 
   sendResponse(res, {
     success: true,

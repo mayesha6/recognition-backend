@@ -4,6 +4,8 @@ import AppError from "../../errorHelpers/AppError";
 import { JwtPayload } from "jsonwebtoken";
 import { QueryBuilder } from "../../utils/QueryBuiler";
 import { Role } from "../user/user.interface";
+import { deleteFileFromS3 } from "../../config/S3Client.config";
+import { envVars } from "../../config/env";
 
 const createReward = async (payload: any, user: JwtPayload) => {
   let organizationId = null;
@@ -71,7 +73,19 @@ const verifyRewardAccess = async (id: string, user: JwtPayload) => {
 };
 
 const updateReward = async (id: string, payload: any, user: JwtPayload) => {
-  await verifyRewardAccess(id, user);
+  const reward = await verifyRewardAccess(id, user);
+
+  // If a new image is provided, delete the old image from S3
+  if (payload.image && reward.image) {
+    const oldKey = reward.image.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
+    if (oldKey) {
+      try {
+        await deleteFileFromS3(oldKey);
+      } catch (err) {
+        console.error("Failed to delete old image from S3:", err);
+      }
+    }
+  }
 
   const updatedReward = await Reward.findByIdAndUpdate(id, payload, {
     new: true,
@@ -82,7 +96,19 @@ const updateReward = async (id: string, payload: any, user: JwtPayload) => {
 };
 
 const deleteReward = async (id: string, user: JwtPayload) => {
-  await verifyRewardAccess(id, user);
+  const reward = await verifyRewardAccess(id, user);
+  
+  if (reward.image) {
+    const key = reward.image.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
+    if (key) {
+      try {
+        await deleteFileFromS3(key);
+      } catch (err) {
+        console.error("Failed to delete image from S3:", err);
+      }
+    }
+  }
+
   return await Reward.findByIdAndDelete(id);
 };
 
