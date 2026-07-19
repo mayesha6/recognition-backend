@@ -230,7 +230,31 @@ const getRecognitionHistory = async (
   return { meta, result };
 };
 
+const deleteRecognition = async (id: string, userToken: JwtPayload) => {
+  const recognition = await Recognition.findById(id);
+  if (!recognition) {
+    throw new AppError(httpStatus.NOT_FOUND, "Recognition not found");
+  }
+
+  // SaaS Isolation: User can delete if they are either sender or receiver
+  if (userToken.role === Role.USER) {
+    if (recognition.receiverEmail !== userToken.email && recognition.senderEmail !== userToken.email) {
+      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to delete this recognition");
+    }
+  } else if (userToken.role !== Role.SUPER_ADMIN) {
+    // Org Admin / Dept Admin must belong to the same organization
+    const orgId = userToken.role === Role.ORGANIZATION_ADMIN ? userToken.userId : userToken.organizationId;
+    if (recognition.organizationId?.toString() !== orgId?.toString()) {
+      throw new AppError(httpStatus.FORBIDDEN, "You can only delete recognitions within your organization");
+    }
+  }
+
+  const result = await Recognition.findByIdAndDelete(id);
+  return result;
+};
+
 export const RecognitionServices = {
   sendRecognition,
-  getRecognitionHistory
+  getRecognitionHistory,
+  deleteRecognition
 };

@@ -21,4 +21,10 @@ router.get(
   RecognitionControllers.getHistory
 );
 
+router.delete(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER),
+  RecognitionControllers.deleteRecognition
+);
+
 export const RecognitionRoutes = router;

@@ -39,7 +39,22 @@ const getHistory = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteRecognition = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = req.user as JwtPayload;
+
+  const result = await RecognitionServices.deleteRecognition(id, user);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Recognition deleted successfully",
+    data: result
+  });
+});
+
 export const RecognitionControllers = {
   sendRecognition,
-  getHistory
+  getHistory,
+  deleteRecognition
 };
