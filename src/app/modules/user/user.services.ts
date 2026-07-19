@@ -227,7 +227,7 @@ const getAllUsers = async (
           plan: sub ? (sub.plan as any).name : "Free",
           employees: employeesCount,
           departments: departmentsCount.length,
-          status: org.isActive === IsActive.ACTIVE ? "Active" : org.isActive === IsActive.INACTIVE ? "Expired" : "Trial",
+          status: org.status === AccountStatus.APPROVED ? "Approved" : org.status === AccountStatus.REJECTED ? "Rejected" : "Pending",
           renewal: sub && sub.endDate ? new Date(sub.endDate).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "N/A"
         };
       })
