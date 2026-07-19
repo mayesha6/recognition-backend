@@ -15,6 +15,7 @@ import { redisClient } from "../../config/redis.config";
 import { getCurrentQuarter } from "../../utils/wallet";
 import { Wallet } from "../wallet/wallet.model";
 import { SubscriptionStatus } from "../subscription/subscription.interface";
+import { Subscription } from "../subscription/subscription.model";
 
 const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) => {
   const { email, password, accountType, department, ...rest } = payload;
@@ -201,6 +202,38 @@ const getAllUsers = async (
     usersData.build(),
     usersData.getMeta(),
   ]);
+
+  if (query.accountType === "ORGANIZATION") {
+    const dataWithOrgDetails = await Promise.all(
+      data.map(async (org: any) => {
+        const sub = await Subscription.findOne({ user: org._id, status: SubscriptionStatus.ACTIVE })
+          .populate("plan")
+          .lean();
+        
+        const employeesCount = await User.countDocuments({ 
+          organizationId: org._id, 
+          role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } 
+        });
+
+        const departmentsCount = await User.distinct("department", {
+          organizationId: org._id,
+          role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }
+        });
+
+        return {
+          ...org.toObject ? org.toObject() : org,
+          id: org._id.toString(), // map _id to id to match figma keys
+          industry: "Technology", 
+          plan: sub ? (sub.plan as any).name : "Free",
+          employees: employeesCount,
+          departments: departmentsCount.length,
+          status: org.isActive === IsActive.ACTIVE ? "Active" : org.isActive === IsActive.INACTIVE ? "Expired" : "Trial",
+          renewal: sub && sub.endDate ? new Date(sub.endDate).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "N/A"
+        };
+      })
+    );
+    return { data: dataWithOrgDetails, meta };
+  }
 
   // --- Wallet Attachment Logic remains exactly the same ---
   const { year, quarter } = getCurrentQuarter();
