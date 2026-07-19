@@ -228,7 +228,7 @@ const getAllUsers = async (
           employees: employeesCount,
           departments: departmentsCount.length,
           status: org.status === AccountStatus.APPROVED ? "Approved" : org.status === AccountStatus.REJECTED ? "Rejected" : "Pending",
-          renewal: sub && sub.endDate ? new Date(sub.endDate).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "N/A"
+          renewal: sub && sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "N/A"
         };
       })
     );
