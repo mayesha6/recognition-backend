@@ -43,24 +43,33 @@ const getDepartments = async (user: JwtPayload) => {
   const enrichedDepartments = await Promise.all(
     departments.map(async (dept: any) => {
       // Find the department admin
-      const adminUser = await User.findOne({
+      const adminFilter: any = {
         department: dept.name,
-        role: Role.DEPARTMENT_ADMIN,
-        organizationId: dept.organizationId
-      }).lean();
+        role: Role.DEPARTMENT_ADMIN
+      };
+      if (dept.organizationId !== null) {
+        adminFilter.organizationId = dept.organizationId;
+      }
+      const adminUser = await User.findOne(adminFilter).lean();
 
       // Count employees in this department
-      const employees = await User.countDocuments({
+      const employeeFilter: any = {
         department: dept.name,
-        role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] },
-        organizationId: dept.organizationId
-      });
+        role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }
+      };
+      if (dept.organizationId !== null) {
+        employeeFilter.organizationId = dept.organizationId;
+      }
+      const employees = await User.countDocuments(employeeFilter);
 
       // Count recognitions associated with this department
-      const recognitions = await Recognition.countDocuments({
-        department: dept.name,
-        organizationId: dept.organizationId
-      });
+      const recognitionFilter: any = {
+        department: dept.name
+      };
+      if (dept.organizationId !== null) {
+        recognitionFilter.organizationId = dept.organizationId;
+      }
+      const recognitions = await Recognition.countDocuments(recognitionFilter);
 
       return {
         ...dept,
