@@ -54,8 +54,7 @@ const getDepartments = async (user: JwtPayload) => {
 
       // Count employees in this department
       const employeeFilter: any = {
-        department: dept.name,
-        role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }
+        department: dept.name
       };
       if (dept.organizationId !== null) {
         employeeFilter.organizationId = dept.organizationId;
