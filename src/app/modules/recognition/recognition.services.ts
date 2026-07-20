@@ -243,7 +243,23 @@ const getRecognitionHistory = async (
   const result = await queryBuilder.build();
   const meta = await queryBuilder.getMeta();
 
-  return { meta, result };
+  const senderEmails = result.map((r: any) => r.senderEmail).filter(Boolean);
+  const receiverEmails = result.map((r: any) => r.receiverEmail).filter(Boolean);
+  const allEmails = Array.from(new Set([...senderEmails, ...receiverEmails]));
+
+  const users = await User.find({ email: { $in: allEmails } }).select("name email").lean();
+  const userMap = new Map(users.map((u: any) => [u.email, u.name]));
+
+  const enrichedResult = result.map((rec: any) => {
+    const recObj = rec.toObject ? rec.toObject() : rec;
+    return {
+      ...recObj,
+      senderName: userMap.get(rec.senderEmail) || rec.senderEmail,
+      recipientName: rec.recipient_name || userMap.get(rec.receiverEmail) || rec.receiverEmail,
+    };
+  });
+
+  return { meta, result: enrichedResult };
 };
 
 const deleteRecognition = async (id: string, userToken: JwtPayload) => {

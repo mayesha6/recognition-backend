@@ -43,12 +43,12 @@ const router = Router();
 
 router.post(
   "/checkout", 
-  checkAuth(Role.ORGANIZATION_ADMIN), 
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.USER), 
   SubscriptionController.createCheckoutSession
 );
 router.get(
   "/me",
-  checkAuth(Role.ORGANIZATION_ADMIN),
+  checkAuth(Role.ORGANIZATION_ADMIN, Role.USER),
   SubscriptionController.getMySubscription
 );
 

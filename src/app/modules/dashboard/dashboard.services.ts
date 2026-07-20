@@ -17,6 +17,8 @@ dayjs.extend(quarterOfYear);
 const getDashboard = async () => {
   const startOfMonth = dayjs().startOf("month").toDate();
   const endOfMonth = dayjs().endOf("month").toDate();
+  const startOfPrevMonth = dayjs().subtract(1, "month").startOf("month").toDate();
+  const endOfPrevMonth = dayjs().subtract(1, "month").endOf("month").toDate();
   const startOfYear = dayjs().startOf("year").toDate();
   const endOfYear = dayjs().endOf("year").toDate();
 
@@ -26,6 +28,8 @@ const getDashboard = async () => {
     activeUsers,
     activeSubscriptions,
     monthlyRevenueData,
+    prevMonthlyRevenueData,
+    annualRevenueData,
     totalRecognitions,
     platformPerformance,
     revenueGrowth,
@@ -40,6 +44,18 @@ const getDashboard = async () => {
     // 🔥 Monthly Revenue (Current Month)
     PaymentHistory.aggregate([
       { $match: { status: "PAID", createdAt: { $gte: startOfMonth, $lte: endOfMonth } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]),
+
+    // 🔥 Previous Month Revenue
+    PaymentHistory.aggregate([
+      { $match: { status: "PAID", createdAt: { $gte: startOfPrevMonth, $lte: endOfPrevMonth } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]),
+
+    // 🔥 Annual Revenue
+    PaymentHistory.aggregate([
+      { $match: { status: "PAID", createdAt: { $gte: startOfYear, $lte: endOfYear } } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]),
 
@@ -72,6 +88,14 @@ const getDashboard = async () => {
   ]);
 
   const monthlyRevenue = monthlyRevenueData[0]?.total || 0;
+  const prevMonthlyRevenue = prevMonthlyRevenueData[0]?.total || 0;
+  const totalAnnualRevenue = annualRevenueData[0]?.total || 0;
+
+  let monthlyGrowthPercentage: string | null = null;
+  if (prevMonthlyRevenue > 0) {
+    const pct = (((monthlyRevenue - prevMonthlyRevenue) / prevMonthlyRevenue) * 100).toFixed(1);
+    monthlyGrowthPercentage = `${Number(pct) >= 0 ? "+" : ""}${pct}%`;
+  }
 
   // Retrieve latest 3 organizations with employee counts, active subscription plan, and active status.
   const latestOrganizations = await User.find({ accountType: AccountType.ORGANIZATION })
@@ -133,6 +157,9 @@ const getDashboard = async () => {
       activeUsers,
       activeSubscriptions,
       monthlyRevenue,
+      prevMonthlyRevenue,
+      monthlyGrowthPercentage,
+      totalAnnualRevenue,
       totalRecognitions,
     },
     charts: {
