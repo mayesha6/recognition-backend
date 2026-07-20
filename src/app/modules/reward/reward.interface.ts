@@ -7,7 +7,7 @@ export enum RewardStatus {
 
 export interface IReward {
   name: string;
-  category: string;
+  category?: string;
   points: number;
   stock: number;
   status: RewardStatus;

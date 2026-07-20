@@ -3,7 +3,7 @@ import { RewardStatus } from "./reward.interface";
 
 const createRewardZodSchema = z.object({
   name: z.string().min(2, "Reward name must be at least 2 characters"),
-  category: z.string().min(2, "Category is required"),
+  category: z.string().optional(),
   points: z.coerce.number().min(1, "Points required must be at least 1"),
   stock: z.coerce.number().min(0, "Stock cannot be negative"),
   status: z.nativeEnum(RewardStatus).optional(),

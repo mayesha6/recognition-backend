@@ -4,7 +4,7 @@ import { IReward, RewardStatus } from "./reward.interface";
 const rewardSchema = new Schema<IReward>(
   {
     name: { type: String, required: true },
-    category: { type: String, required: true },
+    category: { type: String },
     points: { type: Number, required: true, min: 1 },
     stock: { type: Number, required: true, min: 0 },
     status: {
