@@ -57,8 +57,9 @@ const distributePoints = async (
 
     const { year, quarter } = getCurrentQuarter();
     const orgId = new mongoose.Types.ObjectId(decodedToken.organizationId || decodedToken.userId);
+    const safeDept = department.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const query: any = { 
-      department: { $regex: new RegExp(`^${department.trim()}$`, "i") }, 
+      department: { $regex: new RegExp(`^${safeDept}$`, "i") }, 
       isDeleted: false 
     };
 
