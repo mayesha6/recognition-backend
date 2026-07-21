@@ -16,6 +16,7 @@ import { RewardRoutes } from "../modules/reward/reward.route"
 import { RedeemRoutes } from "../modules/redeem/redeem.route"
 import { PlanRoutes } from "../modules/plan/plan.routes"
 import { SubscriptionRoutes } from "../modules/subscription/subscription.routes"
+import { SupportRoutes } from "../modules/support/support.route"
 
 
 export const router = Router()
@@ -76,6 +77,10 @@ const moduleRoutes = [
     {
         path: "/redeem",
         route: RedeemRoutes
+    },
+    {
+        path: "/support",
+        route: SupportRoutes
     },
     {
         path: "/plan",
