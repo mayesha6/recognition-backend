@@ -131,8 +131,10 @@ const setUserPoints = async (
     const { year, quarter } = getCurrentQuarter();
     const orgId = new mongoose.Types.ObjectId(decodedToken.organizationId || decodedToken.userId);
 
-    const user = await User.findOne({ email, isDeleted: false }).session(session);
-    if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    const user = await User.findOne({ email: email.trim(), isDeleted: false }).session(session);
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, `No user found with email "${email}". Please enter a valid user email address.`);
+    }
 
     // 🔐 ISOLATION LOGIC
     if (decodedToken.role === Role.SUPER_ADMIN) {
