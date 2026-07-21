@@ -119,6 +119,7 @@ const getClaims = async (query: Record<string, string>, decodedToken: JwtPayload
     RewardClaim.find(filter).populate("user", "name email picture").populate("reward", "name category image"),
     query
   )
+    .search(["claimId", "department", "status"])
     .filter()
     .sort()
     .paginate();
@@ -126,7 +127,13 @@ const getClaims = async (query: Record<string, string>, decodedToken: JwtPayload
   const data = await queryBuilder.build();
   const meta = await queryBuilder.getMeta();
 
-  return { data, meta };
+  const [pendingCount, approvedCount, rejectedCount] = await Promise.all([
+    RewardClaim.countDocuments({ ...filter, status: ClaimStatus.PENDING }),
+    RewardClaim.countDocuments({ ...filter, status: ClaimStatus.APPROVED }),
+    RewardClaim.countDocuments({ ...filter, status: ClaimStatus.REJECTED }),
+  ]);
+
+  return { data, meta: { ...meta, pendingCount, approvedCount, rejectedCount } };
 };
 
 const getClaimStats = async (decodedToken: JwtPayload) => {

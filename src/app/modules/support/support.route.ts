@@ -29,9 +29,15 @@ router.get(
 // This endpoint matches the "Ticket Response" popup in image_137d22.png
 router.patch(
   "/:ticketId/respond",
-  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN), // Usually admins respond, but you can add USER if they can reply back
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER),
   validateRequest(SupportValidation.respondTicketValidation),
   SupportControllers.respondToTicket
+);
+
+router.delete(
+  "/:ticketId",
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  SupportControllers.deleteTicket
 );
 
 export const SupportRoutes = router;

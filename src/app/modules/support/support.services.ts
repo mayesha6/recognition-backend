@@ -30,7 +30,7 @@ const createTicket = async (payload: any, userToken: JwtPayload) => {
         title: "New Support Ticket",
         message: `Org Admin ${user.name} created ticket: ${ticket.subject}`,
         type: "SUPPORT",
-        link: "/super-admin/support",
+        link: "/super-admin/support-ticket",
       });
     }
   } catch (err) {
@@ -90,7 +90,13 @@ const getAllTickets = async (query: Record<string, string>, userToken: JwtPayloa
   const data = await queryBuilder.build();
   const meta = await queryBuilder.getMeta();
 
-  return { data, meta };
+  const [openCount, pendingCount, resolvedCount] = await Promise.all([
+    SupportTicket.countDocuments({ ...filter, status: TicketStatus.OPEN }),
+    SupportTicket.countDocuments({ ...filter, status: TicketStatus.PENDING }),
+    SupportTicket.countDocuments({ ...filter, status: { $in: [TicketStatus.RESOLVED, TicketStatus.CLOSED] } }),
+  ]);
+
+  return { data, meta: { ...meta, openCount, pendingCount, resolvedCount } };
 };
 
 const respondToTicket = async (ticketId: string, payload: any, userToken: JwtPayload) => {
@@ -129,7 +135,7 @@ const respondToTicket = async (ticketId: string, payload: any, userToken: JwtPay
         title: "Support Ticket Updated",
         message: `Your ticket ${ticket.ticketId} has received a new response.`,
         type: "SUPPORT",
-        link: "/org-admin/support",
+        link: "/org-admin/support-ticket",
       });
     } else {
       // Notify Super Admins
@@ -143,7 +149,7 @@ const respondToTicket = async (ticketId: string, payload: any, userToken: JwtPay
           title: "Support Ticket Response",
           message: `${senderName} replied to ticket ${ticket.ticketId}`,
           type: "SUPPORT",
-          link: "/super-admin/support",
+          link: "/super-admin/support-ticket",
         });
       }
     }
@@ -154,9 +160,25 @@ const respondToTicket = async (ticketId: string, payload: any, userToken: JwtPay
   return ticket;
 };
 
+const deleteTicket = async (ticketId: string, userToken: JwtPayload) => {
+  const ticket = await SupportTicket.findOne({ ticketId });
+  if (!ticket) throw new AppError(httpStatus.NOT_FOUND, "Ticket not found");
+
+  if (userToken.role !== Role.SUPER_ADMIN) {
+    const orgId = userToken.role === Role.ORGANIZATION_ADMIN ? userToken.userId : userToken.organizationId;
+    if (ticket.organizationId?.toString() !== orgId && ticket.user.toString() !== userToken.userId) {
+      throw new AppError(httpStatus.FORBIDDEN, "Not authorized to delete this ticket");
+    }
+  }
+
+  await SupportTicket.deleteOne({ ticketId });
+  return { message: "Ticket deleted successfully" };
+};
+
 export const SupportServices = {
   createTicket,
   getTicketStats,
   getAllTickets,
   respondToTicket,
+  deleteTicket,
 };

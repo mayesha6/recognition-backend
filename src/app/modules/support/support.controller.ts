@@ -56,9 +56,24 @@ const respondToTicket = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteTicket = catchAsync(async (req: Request, res: Response) => {
+  const decodedToken = req.user as JwtPayload;
+  const { ticketId } = req.params;
+
+  const result = await SupportServices.deleteTicket(ticketId, decodedToken);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Ticket deleted successfully",
+    data: result,
+  });
+});
+
 export const SupportControllers = {
   createTicket,
   getTicketStats,
   getAllTickets,
   respondToTicket,
+  deleteTicket,
 };
