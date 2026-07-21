@@ -72,15 +72,39 @@ const updateCategory = async (id: string, payload: any, user: JwtPayload) => {
   return category;
 };
 
+const extractS3Key = (url: string) => {
+  if (!url) return null;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) return url;
+
+  if (envVars.S3.S3_BUCKET_NAME && url.includes(`/${envVars.S3.S3_BUCKET_NAME}/`)) {
+    const key = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
+    if (key) return key;
+  }
+
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.pathname.substring(1);
+  } catch {
+    return null;
+  }
+};
+
 const deleteCategory = async (id: string, user: JwtPayload) => {
   await verifyCategoryAccess(id, user);
 
-  // Optional: If you want to delete images from S3 when a category is deleted
   const category = await Category.findById(id);
-  category?.images.forEach(async (url) => {
-    const key = url.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
-    if (key) await deleteFileFromS3(key);
-  });
+  if (category?.images && category.images.length > 0) {
+    for (const url of category.images) {
+      const key = extractS3Key(url);
+      if (key) {
+        try {
+          await deleteFileFromS3(key);
+        } catch (err) {
+          console.error(`Failed to delete S3 object key: ${key}`, err);
+        }
+      }
+    }
+  }
 
   return await Category.findByIdAndDelete(id);
 };
@@ -106,9 +130,14 @@ const deleteImage = async (categoryId: string, imageUrl: string, user: JwtPayloa
     { new: true }
   );
 
-  // Optional: Remove file from S3 physically
-  const key = imageUrl.split(`/${envVars.S3.S3_BUCKET_NAME}/`)[1];
-  if (key) await deleteFileFromS3(key);
+  const key = extractS3Key(imageUrl);
+  if (key) {
+    try {
+      await deleteFileFromS3(key);
+    } catch (err) {
+      console.error(`Failed to delete S3 object key: ${key}`, err);
+    }
+  }
 
   return category;
 };
