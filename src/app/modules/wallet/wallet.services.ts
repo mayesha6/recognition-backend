@@ -64,12 +64,7 @@ const distributePoints = async (
 
     // 🔐 ISOLATION LOGIC
     if (decodedToken.role === Role.SUPER_ADMIN) {
-      // SA only distributes to Individual Accounts or users without an organization
-      query.$or = [
-        { accountType: AccountType.INDIVIDUAL },
-        { organizationId: null },
-        { organizationId: { $exists: false } }
-      ];
+      // Super Admin can allocate points to any department
     } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
       // OA only distributes to their own organization
       query.organizationId = decodedToken.userId;
@@ -138,9 +133,7 @@ const setUserPoints = async (
 
     // 🔐 ISOLATION LOGIC
     if (decodedToken.role === Role.SUPER_ADMIN) {
-      if (user.accountType !== AccountType.INDIVIDUAL && user.organizationId !== null && user.organizationId !== undefined) {
-        throw new AppError(httpStatus.FORBIDDEN, "Super Admin can only distribute points to Individual accounts or users not under an Organization.");
-      }
+      // Super Admin can allocate points to any user
     } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
       const targetOrgId = user.organizationId?.toString() || user._id.toString();
       if (targetOrgId !== decodedToken.userId) {
