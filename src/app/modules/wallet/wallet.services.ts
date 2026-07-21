@@ -84,7 +84,7 @@ const distributePoints = async (
     const users = await User.find(query).select("_id").session(session);
 
     if (users.length === 0) {
-      throw new AppError(httpStatus.BAD_REQUEST, `No users found in department "${department}". Please add users to this department first.`);
+      throw new AppError(httpStatus.BAD_REQUEST, `No user found in department "${department}".`);
     }
 
     // 💰 CALCULATE AND DEDUCT POINTS
@@ -133,7 +133,7 @@ const setUserPoints = async (
 
     const user = await User.findOne({ email: email.trim(), isDeleted: false }).session(session);
     if (!user) {
-      throw new AppError(httpStatus.BAD_REQUEST, `No user found with email "${email}". Please enter a valid user email address.`);
+      throw new AppError(httpStatus.BAD_REQUEST, `No user found with email "${email}".`);
     }
 
     // 🔐 ISOLATION LOGIC
