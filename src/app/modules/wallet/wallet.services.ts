@@ -57,7 +57,10 @@ const distributePoints = async (
 
     const { year, quarter } = getCurrentQuarter();
     const orgId = new mongoose.Types.ObjectId(decodedToken.organizationId || decodedToken.userId);
-    const query: any = { department, isDeleted: false };
+    const query: any = { 
+      department: { $regex: new RegExp(`^${department.trim()}$`, "i") }, 
+      isDeleted: false 
+    };
 
     // 🔐 ISOLATION LOGIC
     if (decodedToken.role === Role.SUPER_ADMIN) {
@@ -81,7 +84,7 @@ const distributePoints = async (
     const users = await User.find(query).select("_id").session(session);
 
     if (users.length === 0) {
-      throw new AppError(httpStatus.NOT_FOUND, "No valid users found in this department to distribute points.");
+      throw new AppError(httpStatus.BAD_REQUEST, `No users found in department "${department}". Please add users to this department first.`);
     }
 
     // 💰 CALCULATE AND DEDUCT POINTS
