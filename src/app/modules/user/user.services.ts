@@ -27,7 +27,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
 
   let role = Role.USER;
   let organizationId = null;
-  let assignedDepartment = department || "Personal Account";
+  let assignedDepartment = department || (accountType === AccountType.ORGANIZATION ? "Organization" : "Personal Account");
 
   if (accountType === AccountType.ORGANIZATION && !creatorToken) {
     role = Role.ORGANIZATION_ADMIN;
