@@ -19,8 +19,9 @@ export const createPlanZodSchema = z.object({
   interval: z.enum(PLAN_INTERVAL),
   features: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
-access: accessSchema.optional(),
-userLimit: z.number().min(1).optional(),
+  access: accessSchema.optional(),
+  userLimit: z.number().min(1).optional(),
+  allocatedPoints: z.number().min(0).optional(),
 });
 
 export const updatePlanZodSchema = z.object({
@@ -30,5 +31,7 @@ export const updatePlanZodSchema = z.object({
   interval: z.enum(PLAN_INTERVAL).optional(),
   features: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
-access: accessSchema.optional(),
+  access: accessSchema.optional(),
+  userLimit: z.number().min(1).optional(),
+  allocatedPoints: z.number().min(0).optional(),
 });

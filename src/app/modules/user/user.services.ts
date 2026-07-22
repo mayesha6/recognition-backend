@@ -29,6 +29,10 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
   let organizationId = null;
   let assignedDepartment = department || "Personal Account";
 
+  if (accountType === AccountType.ORGANIZATION && !creatorToken) {
+    role = Role.ORGANIZATION_ADMIN;
+  }
+
   // ==========================================
   // 🔥 SUBSCRIPTION & USER LIMIT CHECK
   // ==========================================
@@ -87,10 +91,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
     Number(envVars.BCRYPT_SALT_ROUND)
   );
 
-  const status =
-    accountType === AccountType.ORGANIZATION
-      ? AccountStatus.PENDING
-      : AccountStatus.APPROVED;
+  const status = AccountStatus.APPROVED;
 
   const user = await User.create({
     email,
