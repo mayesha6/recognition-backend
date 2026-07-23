@@ -18,6 +18,19 @@ const createCheckoutSession = async (userId: string, planId: string) => {
 
   let stripeCustomerId = user.stripeCustomerId;
 
+  if (stripeCustomerId) {
+    try {
+      // Verify if customer actually exists in Stripe (handles environment or account switching)
+      await stripe.customers.retrieve(stripeCustomerId);
+    } catch (err: any) {
+      if (err.statusCode === 404 || err.message?.includes("No such customer")) {
+        stripeCustomerId = null;
+      } else {
+        throw err;
+      }
+    }
+  }
+
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({
       email: user.email,
