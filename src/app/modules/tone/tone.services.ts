@@ -55,7 +55,7 @@ const updateTone = async (id: string, payload: any, user: JwtPayload) => {
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!tone.organizationId || tone.organizationId.toString() !== user.userId) {
+    if (!tone.organizationId || tone.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this tone");
     }
   }
@@ -81,7 +81,7 @@ const deleteTone = async (id: string, user: JwtPayload) => {
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!tone.organizationId || tone.organizationId.toString() !== user.userId) {
+    if (!tone.organizationId || tone.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot delete this tone");
     }
   }

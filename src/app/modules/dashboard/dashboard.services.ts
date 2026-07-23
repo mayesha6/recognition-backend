@@ -223,6 +223,8 @@ const getReports = async (filters: any) => {
 
 const getOrgDashboard = async (userId: string) => {
   const orgId = new mongoose.Types.ObjectId(userId);
+  const startOfYear = dayjs().startOf("year").toDate();
+  const endOfYear = dayjs().endOf("year").toDate();
 
   const [
     totalEmployees,
@@ -231,7 +233,10 @@ const getOrgDashboard = async (userId: string) => {
     pointsInCirculation,
     topPerformers,
     departmentPerformance,
-    totalDepartmentsArray
+    totalDepartmentsArray,
+    recognitionTrends,
+    recognitionByCategory,
+    recentActivities
   ] = await Promise.all([
     User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } }),
     User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }, isActive: IsActive.ACTIVE }),
@@ -267,7 +272,59 @@ const getOrgDashboard = async (userId: string) => {
       { $project: { _id: 0, department: "$_id", count: 1 } }
     ]),
 
-    User.distinct("department", { organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } })
+    User.distinct("department", { organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } }),
+
+    // Recognition Trends (Monthly count for current year)
+    Recognition.aggregate([
+      { $match: { organizationId: orgId, createdAt: { $gte: startOfYear, $lte: endOfYear } } },
+      { $group: { _id: { $month: "$createdAt" }, total: { $sum: 1 } } },
+      { $sort: { "_id": 1 } }
+    ]),
+
+    // Recognition by Category
+    Recognition.aggregate([
+      { $match: { organizationId: orgId } },
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $project: { _id: 0, category: "$_id", count: 1 } }
+    ]),
+
+    // Recent activities (recognitions)
+    Recognition.aggregate([
+      { $match: { organizationId: orgId } },
+      { $sort: { createdAt: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "senderEmail",
+          foreignField: "email",
+          as: "senderUser"
+        }
+      },
+      { $unwind: { path: "$senderUser", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "receiverEmail",
+          foreignField: "email",
+          as: "receiverUser"
+        }
+      },
+      { $unwind: { path: "$receiverUser", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          points: 1,
+          category: 1,
+          createdAt: 1,
+          senderName: { $ifNull: ["$senderUser.name", "$senderEmail"] },
+          senderPicture: "$senderUser.picture",
+          receiverName: { $ifNull: ["$receiverUser.name", "$recipient_name", "$receiverEmail"] },
+          receiverPicture: "$receiverUser.picture",
+          department: { $ifNull: ["$receiverUser.department", "$department", "N/A"] }
+        }
+      }
+    ])
   ]);
 
   return {
@@ -280,9 +337,16 @@ const getOrgDashboard = async (userId: string) => {
     },
     topPerformers: topPerformers.map(p => ({
       name: p.user.name,
-      points: p.totalPoints
+      points: p.totalPoints,
+      department: p.user.department || "N/A",
+      role: p.user.role || "User",
+      picture: p.user.picture || null,
+      email: p.user.email
     })),
     departmentPerformance,
+    recognitionTrends,
+    recognitionByCategory,
+    recentActivities
   };
 };
 export const DashboardServices = {

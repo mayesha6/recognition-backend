@@ -55,7 +55,7 @@ const updateRecognitionValue = async (id: string, payload: any, user: JwtPayload
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!recognitionValue.organizationId || recognitionValue.organizationId.toString() !== user.userId) {
+    if (!recognitionValue.organizationId || recognitionValue.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this recognition value");
     }
   }
@@ -81,7 +81,7 @@ const deleteRecognitionValue = async (id: string, user: JwtPayload) => {
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!recognitionValue.organizationId || recognitionValue.organizationId.toString() !== user.userId) {
+    if (!recognitionValue.organizationId || recognitionValue.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot delete this recognition value");
     }
   }

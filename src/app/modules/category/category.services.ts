@@ -53,7 +53,7 @@ const verifyCategoryAccess = async (categoryId: string, user: JwtPayload) => {
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!category.organizationId || category.organizationId.toString() !== user.userId) {
+    if (!category.organizationId || category.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this organization's category");
     }
   }

@@ -97,7 +97,7 @@ const updateDepartment = async (id: string, payload: any, user: JwtPayload) => {
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!department.organizationId || department.organizationId.toString() !== user.userId) {
+    if (!department.organizationId || department.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this department");
     }
   }
@@ -123,7 +123,7 @@ const deleteDepartment = async (id: string, user: JwtPayload) => {
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!department.organizationId || department.organizationId.toString() !== user.userId) {
+    if (!department.organizationId || department.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot delete this department");
     }
   }

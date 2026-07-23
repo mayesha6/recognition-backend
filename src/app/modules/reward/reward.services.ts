@@ -64,7 +64,7 @@ const verifyRewardAccess = async (id: string, user: JwtPayload) => {
   }
 
   if (user.role === Role.ORGANIZATION_ADMIN) {
-    if (!reward.organizationId || reward.organizationId.toString() !== user.userId) {
+    if (!reward.organizationId || reward.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this reward as it belongs to another organization or is a global reward.");
     }
   }
