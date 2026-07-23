@@ -23,6 +23,16 @@ const createDepartment = async (payload: any, user: JwtPayload) => {
     createdBy: user.userId,
   });
 
+  if (payload.adminId) {
+    // 1. Clear any other department admin that is currently assigned to this department name
+    await User.updateMany(
+      { organizationId, role: Role.DEPARTMENT_ADMIN, department: department.name },
+      { $set: { department: "" } }
+    );
+    // 2. Assign the new admin to this department
+    await User.findByIdAndUpdate(payload.adminId, { department: department.name });
+  }
+
   return department;
 };
 
@@ -75,6 +85,7 @@ const getDepartments = async (user: JwtPayload) => {
         id: dept._id.toString(),
         admin: adminUser ? adminUser.name : "N/A",
         adminEmail: adminUser ? adminUser.email : "",
+        adminId: adminUser ? adminUser._id.toString() : "",
         employees,
         recognitions
       };
@@ -102,10 +113,42 @@ const updateDepartment = async (id: string, payload: any, user: JwtPayload) => {
     }
   }
 
+  const oldName = department.name;
+  const newName = payload.name || oldName;
+
   const updatedDepartment = await Department.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
+
+  if (updatedDepartment) {
+    const orgId = department.organizationId;
+
+    // 1. If department name changed, update all users (regular and admins) in this department
+    if (oldName !== newName) {
+      await User.updateMany(
+        { organizationId: orgId, department: oldName },
+        { $set: { department: newName } }
+      );
+    }
+
+    // 2. Handle admin assignment if adminId is passed
+    if (payload.adminId) {
+      // Clear any other admin of this department
+      await User.updateMany(
+        { organizationId: orgId, role: Role.DEPARTMENT_ADMIN, department: newName },
+        { $set: { department: "" } }
+      );
+      // Assign the new admin
+      await User.findByIdAndUpdate(payload.adminId, { department: newName });
+    } else if (payload.adminId === "") {
+      // If adminId is explicitly cleared, remove the admin
+      await User.updateMany(
+        { organizationId: orgId, role: Role.DEPARTMENT_ADMIN, department: newName },
+        { $set: { department: "" } }
+      );
+    }
+  }
 
   return updatedDepartment;
 };
