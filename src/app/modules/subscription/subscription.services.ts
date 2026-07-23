@@ -12,8 +12,57 @@ const createCheckoutSession = async (userId: string, planId: string) => {
   }
 
   const plan = await Plan.findById(planId);
-  if (!plan || !plan.stripePriceId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid plan or missing Stripe Price ID");
+  if (!plan) {
+    throw new AppError(httpStatus.NOT_FOUND, "Plan not found");
+  }
+
+  let stripePriceId = plan.stripePriceId;
+
+  if (stripePriceId) {
+    try {
+      // Verify if price exists in the active Stripe account
+      await stripe.prices.retrieve(stripePriceId);
+    } catch (err: any) {
+      if (err.statusCode === 404 || err.message?.includes("No such price")) {
+        stripePriceId = "";
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  if (!stripePriceId) {
+    try {
+      const stripeProduct = await stripe.products.create({
+        name: plan.name,
+        description: plan.features?.join(", ") || "",
+      });
+
+      let stripeInterval: "month" | "year" = "month";
+      const intervalStr = String(plan.interval || "").toLowerCase();
+      if (intervalStr.includes("year") || intervalStr.includes("annual")) {
+        stripeInterval = "year";
+      }
+
+      const stripePrice = await stripe.prices.create({
+        unit_amount: Math.round(plan.price * 100),
+        currency: plan.currency?.toLowerCase() || "usd",
+        recurring: {
+          interval: stripeInterval,
+        },
+        product: stripeProduct.id,
+      });
+
+      stripePriceId = stripePrice.id;
+      plan.stripeProductId = stripeProduct.id;
+      plan.stripePriceId = stripePrice.id;
+      await plan.save();
+    } catch (stripeErr: any) {
+      throw new AppError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        `Failed to register plan on Stripe: ${stripeErr.message}`
+      );
+    }
   }
 
   let stripeCustomerId = user.stripeCustomerId;
@@ -48,7 +97,7 @@ const createCheckoutSession = async (userId: string, planId: string) => {
     customer: stripeCustomerId,
     line_items: [
       {
-        price: plan.stripePriceId,
+        price: stripePriceId,
         quantity: 1,
       },
     ],
