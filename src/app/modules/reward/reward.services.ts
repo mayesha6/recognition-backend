@@ -39,8 +39,13 @@ const getAllRewards = async (user: JwtPayload, query: Record<string, string>) =>
     // Org Admin sees only their own organization's rewards
     filter.organizationId = user.userId;
   } else {
-    // Users and Dept Admins see Global Rewards + Their Org's Rewards
-    filter.$or = [{ organizationId: null }, { organizationId: user.organizationId }];
+    // If the user belongs to an organization, they only see their organization's rewards.
+    // Otherwise, they see global rewards (null organizationId).
+    if (user.organizationId) {
+      filter.organizationId = user.organizationId;
+    } else {
+      filter.organizationId = null;
+    }
   }
 
   const queryBuilder = new QueryBuilder(Reward.find(filter), query)
