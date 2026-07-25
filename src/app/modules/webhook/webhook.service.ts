@@ -149,13 +149,29 @@ export const handleStripeWebhook = async (event: any) => {
         { status: SubscriptionStatus.CANCELLED }
       );
 
-      await User.findOneAndUpdate(
+      const user = await User.findOneAndUpdate(
         { stripeSubscriptionId: stripeObject.id },
         {
           subscriptionStatus: SubscriptionStatus.CANCELLED,
           currentPlan: null,
-        }
+        },
+        { new: true }
       );
+
+      if (user) {
+        const { year, quarter } = getCurrentQuarter();
+        await Wallet.updateOne(
+          { user: user._id, year, quarter },
+          {
+            $set: {
+              pointsAllocated: 0,
+              pointsBalance: 0,
+              pointsUsed: 0,
+            }
+          }
+        );
+        console.log(`❌ Subscription cancelled. Wallet points reset to 0 for user: ${user._id}`);
+      }
     }
 
     // =====================================
