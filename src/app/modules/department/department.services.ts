@@ -116,6 +116,18 @@ const updateDepartment = async (id: string, payload: any, user: JwtPayload) => {
   const oldName = department.name;
   const newName = payload.name || oldName;
 
+  // Enforce unique department name constraint inside the same organization
+  if (payload.name && payload.name !== department.name) {
+    const existingDepartment = await Department.findOne({
+      name: payload.name,
+      organizationId: department.organizationId,
+      _id: { $ne: id },
+    });
+    if (existingDepartment) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Department with this name already exists");
+    }
+  }
+
   const updatedDepartment = await Department.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,

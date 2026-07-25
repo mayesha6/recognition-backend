@@ -33,11 +33,11 @@ const getAllRewards = async (user: JwtPayload, query: Record<string, string>) =>
 
   // SaaS Isolation Check
   if (user.role === Role.SUPER_ADMIN) {
-    // Only global rewards if not specified, or can view all depending on use case.
+    // Super Admin sees only global rewards (null organizationId)
     filter.organizationId = null; 
   } else if (user.role === Role.ORGANIZATION_ADMIN) {
-    // Org Admin sees Global Rewards + Their Own Rewards
-    filter.$or = [{ organizationId: null }, { organizationId: user.userId }];
+    // Org Admin sees only their own organization's rewards
+    filter.organizationId = user.userId;
   } else {
     // Users and Dept Admins see Global Rewards + Their Org's Rewards
     filter.$or = [{ organizationId: null }, { organizationId: user.organizationId }];
@@ -74,6 +74,18 @@ const verifyRewardAccess = async (id: string, user: JwtPayload) => {
 
 const updateReward = async (id: string, payload: any, user: JwtPayload) => {
   const reward = await verifyRewardAccess(id, user);
+
+  // Enforce same reward name constraint inside the same organization
+  if (payload.name && payload.name !== reward.name) {
+    const existingReward = await Reward.findOne({
+      name: payload.name,
+      organizationId: reward.organizationId,
+      _id: { $ne: id },
+    });
+    if (existingReward) {
+      throw new AppError(httpStatus.BAD_REQUEST, "A reward with this name already exists in your catalog");
+    }
+  }
 
   // If a new image is provided, delete the old image from S3
   if (payload.image && reward.image) {
