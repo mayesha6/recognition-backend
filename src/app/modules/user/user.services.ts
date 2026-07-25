@@ -459,8 +459,8 @@ const getSingleUser = async (id: string, decodedToken: JwtPayload) => {
     // If the target user is an Organization Admin, their _id is the organizationId
     const targetOrgId = user.organizationId?.toString() || user._id.toString();
     const requesterOrgId = decodedToken.role === Role.ORGANIZATION_ADMIN 
-      ? decodedToken.userId 
-      : decodedToken.organizationId;
+      ? decodedToken.userId?.toString() 
+      : decodedToken.organizationId?.toString();
 
     if (targetOrgId !== requesterOrgId) {
       throw new AppError(httpStatus.FORBIDDEN, "Not authorized to view users from another organization");
@@ -507,8 +507,8 @@ const updateUser = async (
 
     const targetOrgId = targetUser.organizationId?.toString() || targetUser._id.toString();
     const requesterOrgId = decodedToken.role === Role.ORGANIZATION_ADMIN 
-      ? decodedToken.userId 
-      : decodedToken.organizationId;
+      ? decodedToken.userId?.toString() 
+      : decodedToken.organizationId?.toString();
 
     if (targetOrgId !== requesterOrgId) {
       throw new AppError(403, "Cannot modify users from another organization");
@@ -550,8 +550,8 @@ const deleteUserById = async (
 
     const targetOrgId = user.organizationId?.toString() || user._id.toString();
     const requesterOrgId = decodedToken.role === Role.ORGANIZATION_ADMIN 
-      ? decodedToken.userId 
-      : decodedToken.organizationId;
+      ? decodedToken.userId?.toString() 
+      : decodedToken.organizationId?.toString();
 
     if (targetOrgId !== requesterOrgId) {
       throw new AppError(403, "Cannot delete users from another organization");
