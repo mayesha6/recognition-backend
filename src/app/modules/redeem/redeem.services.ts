@@ -226,6 +226,13 @@ const updateClaimStatus = async (claimId: string, status: ClaimStatus, decodedTo
       if (claim.organizationId?.toString() !== orgId) {
         throw new AppError(httpStatus.FORBIDDEN, "Not authorized to manage this claim");
       }
+
+      // Department Isolation Check
+      if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
+        if (claim.department !== decodedToken.department) {
+          throw new AppError(httpStatus.FORBIDDEN, "Not authorized to manage claims from another department");
+        }
+      }
     }
 
     if (status === ClaimStatus.APPROVED) {

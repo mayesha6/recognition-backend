@@ -28,7 +28,7 @@ router.get(
 
 router.patch(
   "/:id/status",
-  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN),
+  checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN),
   validateRequest(RedeemValidation.updateClaimStatusValidation),
   RedeemControllers.updateClaimStatus
 );
