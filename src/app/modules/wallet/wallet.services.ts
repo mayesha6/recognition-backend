@@ -137,12 +137,12 @@ const setUserPoints = async (
       // Super Admin can allocate points to any user
     } else if (decodedToken.role === Role.ORGANIZATION_ADMIN) {
       const targetOrgId = user.organizationId?.toString() || user._id.toString();
-      if (targetOrgId !== decodedToken.userId) {
+      if (targetOrgId !== decodedToken.userId.toString()) {
         throw new AppError(httpStatus.FORBIDDEN, "User does not belong to your organization.");
       }
     } else if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
       const targetOrgId = user.organizationId?.toString();
-      if (targetOrgId !== decodedToken.organizationId || user.department !== decodedToken.department) {
+      if (targetOrgId !== decodedToken.organizationId?.toString() || user.department !== decodedToken.department) {
         throw new AppError(httpStatus.FORBIDDEN, "User does not belong to your department.");
       }
     }
@@ -241,7 +241,7 @@ const updateDepartmentBudget = async (deptAdminId: string, additionalPoints: num
     const { year, quarter } = getCurrentQuarter();
 
     const deptAdmin = await User.findOne({ _id: deptAdminId, isDeleted: false });
-    if (!deptAdmin || (deptAdmin.organizationId?.toString() || deptAdmin._id.toString()) !== decodedToken.userId) {
+    if (!deptAdmin || (deptAdmin.organizationId?.toString() || deptAdmin._id.toString()) !== decodedToken.userId.toString()) {
         throw new AppError(httpStatus.FORBIDDEN, "Department admin does not belong to your organization.");
     }
     
