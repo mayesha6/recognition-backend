@@ -228,9 +228,11 @@ const getRecognitionHistory = async (
     // Regular users only see their own history
     filter.organizationId = userToken.organizationId;
     filter.$or = [{ senderEmail: userToken.email }, { receiverEmail: userToken.email }];
-  } else if (userToken.role === Role.ORGANIZATION_ADMIN || userToken.role === Role.DEPARTMENT_ADMIN) {
-    // Admins can see the whole organization's history
-    filter.organizationId = userToken.role === Role.ORGANIZATION_ADMIN ? userToken.userId : userToken.organizationId;
+  } else if (userToken.role === Role.ORGANIZATION_ADMIN) {
+    filter.organizationId = userToken.userId;
+  } else if (userToken.role === Role.DEPARTMENT_ADMIN) {
+    filter.organizationId = userToken.organizationId;
+    filter.department = userToken.department;
   }
 
   const queryBuilder = new QueryBuilder(Recognition.find(filter), query)

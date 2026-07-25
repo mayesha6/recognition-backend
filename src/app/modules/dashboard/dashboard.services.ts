@@ -235,6 +235,15 @@ const getOrgDashboard = async (decodedToken: JwtPayload) => {
     deptFilter.department = decodedToken.department;
   }
 
+  console.log("DASHBOARD OVERVIEW DEBUG:", {
+    role: decodedToken.role,
+    userId: decodedToken.userId,
+    organizationId: decodedToken.organizationId,
+    orgId: orgId.toString(),
+    department: decodedToken.department,
+    deptFilter
+  });
+
   const [
     totalEmployees,
     activeEmployees,
@@ -344,6 +353,17 @@ const getOrgDashboard = async (decodedToken: JwtPayload) => {
       }
     ])
   ]);
+
+  console.log("DASHBOARD OVERVIEW RESULTS:", {
+    totalEmployees,
+    activeEmployees,
+    recognitionsSent,
+    pointsInCirculation: pointsInCirculation[0]?.total || 0,
+    topPerformersCount: topPerformers.length,
+    recentActivitiesCount: recentActivities.length,
+    trendsCount: recognitionTrends.length,
+    categoriesCount: recognitionByCategory.length
+  });
 
   return {
     overview: {
