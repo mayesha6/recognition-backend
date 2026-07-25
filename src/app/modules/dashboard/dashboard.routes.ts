@@ -12,7 +12,7 @@ router.get(
 )
 router.get(
     "/org-dashboard",
-    checkAuth(Role.ORGANIZATION_ADMIN),
+    checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN),
     DashboardController.getOrgDashboard
 )
 router.get(
