@@ -6,12 +6,21 @@ import { WalletServices } from "./wallet.services";
 import { JwtPayload } from "jsonwebtoken";
 import AppError from "../../errorHelpers/AppError";
 import { Role } from "../user/user.interface";
+import { getCurrentQuarter } from "../../utils/wallet";
 
 const getWallet = catchAsync(async (req: Request, res: Response) => {
   const userId = req.params.userId;
-  const { year, quarter } = req.body; // Consider moving year/quarter to query params for GET requests
+  
+  let year = req.query.year || req.body?.year;
+  let quarter = req.query.quarter || req.body?.quarter;
 
-  const wallet = await WalletServices.getWallet(userId, year, quarter);
+  if (!year || !quarter) {
+    const current = getCurrentQuarter();
+    year = year || current.year;
+    quarter = quarter || current.quarter;
+  }
+
+  const wallet = await WalletServices.getWallet(userId, Number(year), Number(quarter));
 
   sendResponse(res, {
     success: true,
