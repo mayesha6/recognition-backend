@@ -312,7 +312,9 @@ const rejectOrganization = async (userId: string) => {
 
 
 const getMe = async (userId: string) => {
-  const user = await User.findById(userId).select("-password");
+  const user = await User.findById(userId)
+    .populate("organizationId", "name email picture")
+    .select("-password");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
