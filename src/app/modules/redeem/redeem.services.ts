@@ -222,8 +222,13 @@ const updateClaimStatus = async (claimId: string, status: ClaimStatus, decodedTo
 
     // SaaS Isolation Check
     if (decodedToken.role !== Role.SUPER_ADMIN) {
-      const orgId = decodedToken.role === Role.ORGANIZATION_ADMIN ? decodedToken.userId : decodedToken.organizationId;
-      if (claim.organizationId?.toString() !== orgId) {
+      const orgId = decodedToken.role === Role.ORGANIZATION_ADMIN 
+        ? decodedToken.userId?.toString() 
+        : decodedToken.organizationId?.toString();
+
+      const claimOrgId = claim.organizationId?.toString() || (claim.user as any).organizationId?.toString();
+
+      if (claimOrgId !== orgId) {
         throw new AppError(httpStatus.FORBIDDEN, "Not authorized to manage this claim");
       }
 
