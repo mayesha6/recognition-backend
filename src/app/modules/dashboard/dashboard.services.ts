@@ -221,10 +221,19 @@ const getReports = async (filters: any) => {
   };
 };
 
-const getOrgDashboard = async (userId: string) => {
-  const orgId = new mongoose.Types.ObjectId(userId);
+const getOrgDashboard = async (decodedToken: JwtPayload) => {
+  const isOrgAdmin = decodedToken.role === Role.ORGANIZATION_ADMIN;
+  const orgId = isOrgAdmin 
+    ? new mongoose.Types.ObjectId(decodedToken.userId)
+    : new mongoose.Types.ObjectId(decodedToken.organizationId);
+
   const startOfYear = dayjs().startOf("year").toDate();
   const endOfYear = dayjs().endOf("year").toDate();
+
+  const deptFilter: any = {};
+  if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
+    deptFilter.department = decodedToken.department;
+  }
 
   const [
     totalEmployees,
@@ -238,27 +247,36 @@ const getOrgDashboard = async (userId: string) => {
     recognitionByCategory,
     recentActivities
   ] = await Promise.all([
-    User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } }),
-    User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }, isActive: IsActive.ACTIVE }),
-    Recognition.countDocuments({ organizationId: orgId }),
+    User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }, ...deptFilter }),
+    User.countDocuments({ organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }, isActive: IsActive.ACTIVE, ...deptFilter }),
+    Recognition.countDocuments({ organizationId: orgId, ...deptFilter }),
     
-    // Wallet এ organizationId থাকলে এটি কাজ করবে
+    // Wallet
     Wallet.aggregate([
       { $match: { organizationId: orgId } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails"
+        }
+      },
+      { $unwind: "$userDetails" },
+      ...(decodedToken.role === Role.DEPARTMENT_ADMIN ? [{ $match: { "userDetails.department": decodedToken.department } }] : []),
       { $group: { _id: null, total: { $sum: "$pointsBalance" } } }
     ]),
 
     // Top Performers
     Recognition.aggregate([
-      { $match: { organizationId: orgId } },
+      { $match: { organizationId: orgId, ...deptFilter } },
       { $group: { _id: "$receiverEmail", totalPoints: { $sum: "$points" } } },
       { $sort: { totalPoints: -1 } },
       { $limit: 5 },
-      // receiverEmail দিয়ে ইউজার জয়েন করা নিরাপদ, যদি receiverId সব সময় না থাকে
       { 
         $lookup: { 
           from: "users", 
-          localField: "_id", // এখানে _id মানে receiverEmail
+          localField: "_id", 
           foreignField: "email", 
           as: "user" 
         } 
@@ -267,30 +285,30 @@ const getOrgDashboard = async (userId: string) => {
     ]),
 
     Recognition.aggregate([
-      { $match: { organizationId: orgId } },
+      { $match: { organizationId: orgId, ...deptFilter } },
       { $group: { _id: "$department", count: { $sum: 1 } } },
       { $project: { _id: 0, department: "$_id", count: 1 } }
     ]),
 
-    User.distinct("department", { organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] } }),
+    User.distinct("department", { organizationId: orgId, role: { $in: [Role.USER, Role.DEPARTMENT_ADMIN] }, ...deptFilter }),
 
     // Recognition Trends (Monthly count for current year)
     Recognition.aggregate([
-      { $match: { organizationId: orgId, createdAt: { $gte: startOfYear, $lte: endOfYear } } },
+      { $match: { organizationId: orgId, createdAt: { $gte: startOfYear, $lte: endOfYear }, ...deptFilter } },
       { $group: { _id: { $month: "$createdAt" }, total: { $sum: 1 } } },
       { $sort: { "_id": 1 } }
     ]),
 
     // Recognition by Category
     Recognition.aggregate([
-      { $match: { organizationId: orgId } },
+      { $match: { organizationId: orgId, ...deptFilter } },
       { $group: { _id: "$category", count: { $sum: 1 } } },
       { $project: { _id: 0, category: "$_id", count: 1 } }
     ]),
 
     // Recent activities (recognitions)
     Recognition.aggregate([
-      { $match: { organizationId: orgId } },
+      { $match: { organizationId: orgId, ...deptFilter } },
       { $sort: { createdAt: -1 } },
       { $limit: 5 },
       {

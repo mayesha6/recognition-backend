@@ -38,8 +38,7 @@ console.log("Reports result:", result)
 
 const getOrgDashboard = catchAsync(async (req: Request, res: Response) => {
   const userToken = req.user as JwtPayload;
-  const userId = userToken.userId;
-  const result = await DashboardServices.getOrgDashboard(userId);
+  const result = await DashboardServices.getOrgDashboard(userToken);
   
   sendResponse(res, {
     success: true,
