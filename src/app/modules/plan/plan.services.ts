@@ -24,7 +24,56 @@ const createPlan = async (payload: any) => {
   const existingPlan = await Plan.findOne({ name: payload.name });
 
   if (existingPlan) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Plan already exists");
+    if (existingPlan.isActive) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Plan already exists");
+    } else {
+      // Reactivate and update the deleted plan
+      let productId = existingPlan.stripeProductId;
+      let priceId = existingPlan.stripePriceId;
+
+      if (payload.price === 0) {
+        productId = null;
+        priceId = null;
+      } else {
+        if (!productId) {
+          const stripeProduct = await stripe.products.create({
+            name: payload.name,
+            description: payload.features?.join(", "),
+          });
+          productId = stripeProduct.id;
+        }
+
+        const stripePrice = await stripe.prices.create({
+          unit_amount: Math.round(payload.price * 100),
+          currency: payload.currency?.toLowerCase() || "usd",
+          recurring: {
+            interval: mapIntervalToStripe(payload.interval),
+          },
+          product: productId,
+        });
+        priceId = stripePrice.id;
+      }
+
+      const updatedPlan = await Plan.findByIdAndUpdate(
+        existingPlan._id,
+        {
+          ...payload,
+          isActive: true,
+          stripeProductId: productId,
+          stripePriceId: priceId,
+          currency: payload.currency || "USD",
+          features: payload.features || [],
+          access: payload.access || {
+            products: [],
+            courses: [],
+            bundles: [],
+          },
+        },
+        { new: true, runValidators: true }
+      );
+
+      return updatedPlan;
+    }
   }
 
   if (payload.price === 0) {
