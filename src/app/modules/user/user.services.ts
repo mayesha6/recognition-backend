@@ -198,6 +198,9 @@ const getAllUsers = async (
     filter.role = Role.USER; // সাধারণ ইউজারদের Admin দের দেখার দরকার নেই
   }
 
+  // Prevent QueryBuilder from using organizationId from raw query
+  delete query.organizationId;
+
   const queryBuilder = new QueryBuilder(User.find(filter), query);
 
   const usersData = queryBuilder
