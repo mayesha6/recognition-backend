@@ -76,19 +76,37 @@ const createClaim = async (rewardId: string, decodedToken: JwtPayload) => {
 
     await session.commitTransaction();
 
-    // Create notification for Org Admin(s)
+    // Create notification for Org Admin(s) and Dept Admin(s)
     try {
-      const orgAdmin = await User.findOne({ _id: user.organizationId, role: Role.ORGANIZATION_ADMIN }) || 
-                       await User.findOne({ organizationId: user.organizationId, role: Role.ORGANIZATION_ADMIN });
-      if (orgAdmin) {
-        await Notification.create({
-          recipient: orgAdmin._id,
-          sender: user._id,
-          title: "New Reward Claim Request",
-          message: `${user.name} submitted a claim for ${reward.name}`,
-          type: "CLAIM",
-          link: "/org-admin/reward-claim",
+      if (user.organizationId) {
+        const orgAdmin = await User.findOne({ _id: user.organizationId, role: Role.ORGANIZATION_ADMIN }) || 
+                         await User.findOne({ organizationId: user.organizationId, role: Role.ORGANIZATION_ADMIN });
+        if (orgAdmin) {
+          await Notification.create({
+            recipient: orgAdmin._id,
+            sender: user._id,
+            title: "New Reward Claim Request",
+            message: `${user.name} submitted a claim for ${reward.name}`,
+            type: "CLAIM",
+            link: "/org-admin/reward-claim",
+          });
+        }
+
+        const deptAdmins = await User.find({
+          organizationId: user.organizationId,
+          department: user.department,
+          role: Role.DEPARTMENT_ADMIN,
         });
+        for (const deptAdmin of deptAdmins) {
+          await Notification.create({
+            recipient: deptAdmin._id,
+            sender: user._id,
+            title: "New Reward Claim Request",
+            message: `${user.name} submitted a claim for ${reward.name}`,
+            type: "CLAIM",
+            link: "/dept-admin/reward-claim",
+          });
+        }
       }
     } catch (err) {
       console.error("Failed to create claim notification:", err);
@@ -113,6 +131,14 @@ const getClaims = async (query: Record<string, string>, decodedToken: JwtPayload
   } else if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
     filter.organizationId = decodedToken.organizationId;
     filter.department = decodedToken.department;
+  } else if (decodedToken.role === Role.SUPER_ADMIN) {
+    // Super admin only sees claims of individual users (users with no organization)
+    const individualUsers = await User.find({
+      $or: [{ organizationId: null }, { organizationId: { $exists: false } }],
+      role: Role.USER,
+    }).select("_id");
+    const individualUserIds = individualUsers.map((u) => u._id);
+    filter.user = { $in: individualUserIds };
   }
 
   const queryBuilder = new QueryBuilder(
@@ -155,6 +181,8 @@ const getClaimStats = async (decodedToken: JwtPayload) => {
     rewardFilter.$or = [{ organizationId: null }, { organizationId: decodedToken.organizationId }];
   } else if (decodedToken.role === Role.SUPER_ADMIN) {
     rewardFilter.organizationId = null; // Global rewards
+    orgFilter.$or = [{ organizationId: null }, { organizationId: { $exists: false } }];
+    orgFilter.role = Role.USER;
   }
 
   // অর্গানাইজেশনের ইউজারদের আইডি বের করা (Points in circulation এর জন্য)
@@ -237,6 +265,12 @@ const updateClaimStatus = async (claimId: string, status: ClaimStatus, decodedTo
         if (claim.department !== decodedToken.department) {
           throw new AppError(httpStatus.FORBIDDEN, "Not authorized to manage claims from another department");
         }
+      }
+    } else {
+      // Super Admin check: can only manage claims of individual users (users with no organization)
+      const userOrgId = (claim.user as any)?.organizationId;
+      if (userOrgId) {
+        throw new AppError(httpStatus.FORBIDDEN, "Not authorized to manage organization users' claims");
       }
     }
 
