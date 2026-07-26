@@ -64,11 +64,11 @@ const credentialsLogin = catchAsync(
 );
 const getNewAccessToken = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
     if (!refreshToken) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "No refresh token recieved from cookies"
+        "No refresh token received"
       );
     }
     const tokenInfo = await AuthServices.getNewAccessToken(
