@@ -37,49 +37,55 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
   // 🔥 SUBSCRIPTION & USER LIMIT CHECK
   // ==========================================
   if (creatorToken) {
-    if (creatorToken.role === Role.ORGANIZATION_ADMIN) {
-      organizationId = creatorToken.userId;
-      if (payload.role === Role.DEPARTMENT_ADMIN) {
-        role = Role.DEPARTMENT_ADMIN;
+    if (creatorToken.role === Role.SUPER_ADMIN) {
+      role = payload.role || Role.SUPER_ADMIN;
+      organizationId = payload.organizationId || null;
+      assignedDepartment = department || "Personal Account";
+    } else {
+      if (creatorToken.role === Role.ORGANIZATION_ADMIN) {
+        organizationId = creatorToken.userId;
+        if (payload.role === Role.DEPARTMENT_ADMIN) {
+          role = Role.DEPARTMENT_ADMIN;
+        }
+      } else if (creatorToken.role === Role.DEPARTMENT_ADMIN) {
+        organizationId = creatorToken.organizationId;
+        assignedDepartment = creatorToken.department;
+        role = Role.USER; 
       }
-    } else if (creatorToken.role === Role.DEPARTMENT_ADMIN) {
-      organizationId = creatorToken.organizationId;
-      assignedDepartment = creatorToken.department;
-      role = Role.USER; 
-    }
 
-    // ডাটাবেজ থেকে রুট অর্গানাইজেশন এডমিনের ডাটা প্ল্যান সহ আনবো
-    const rootOrgAdmin = await User.findById(organizationId).populate("currentPlan");
+      // ডাটাবেজ থেকে রুট অর্গানাইজেশন এডমিনের ডাটা প্ল্যান সহ আনবো
+      const rootOrgAdmin = await User.findById(organizationId).populate("currentPlan");
 
-    if (!rootOrgAdmin) {
-      throw new AppError(httpStatus.NOT_FOUND, "Organization Admin not found");
-    }
+      if (!rootOrgAdmin) {
+        throw new AppError(httpStatus.NOT_FOUND, "Organization Admin not found");
+      }
 
-    // ১. সাবস্ক্রিপশন অ্যাক্টিভ আছে কি না চেক করা
-    if (
-      rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.ACTIVE &&
-      rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.TRIAL
-    ) {
-      throw new AppError(httpStatus.FORBIDDEN, "Organization subscription is not active. Please upgrade your plan.");
-    }
+      // ১. সাবস্ক্রিপশন অ্যাক্টিভ আছে কি না চেক করা
+      if (
+        rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.ACTIVE &&
+        rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.TRIAL
+      ) {
+        throw new AppError(httpStatus.FORBIDDEN, "Organization subscription is not active. Please upgrade your plan.");
+      }
 
-    // ২. প্ল্যান লিমিট চেক করা
-    const plan = rootOrgAdmin.currentPlan as any; 
-    if (!plan || !plan.userLimit) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Active plan details not found");
-    }
+      // ২. প্ল্যান লিমিট চেক করা
+      const plan = rootOrgAdmin.currentPlan as any; 
+      if (!plan || !plan.userLimit) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Active plan details not found");
+      }
 
-    // বর্তমান ইউজারের সংখ্যা বের করা (অর্গানাইজেশন এডমিন বাদে)
-    const currentUserCount = await User.countDocuments({ 
-      organizationId, 
-      isDeleted: false 
-    });
+      // বর্তমান ইউজারের সংখ্যা বের করা (অর্গানাইজেশন এডমিন বাদে)
+      const currentUserCount = await User.countDocuments({ 
+        organizationId, 
+        isDeleted: false 
+      });
 
-    if (currentUserCount >= plan.userLimit) {
-      throw new AppError(
-        httpStatus.FORBIDDEN, 
-        `User limit reached! Your plan allows up to ${plan.userLimit} users.`
-      );
+      if (currentUserCount >= plan.userLimit) {
+        throw new AppError(
+          httpStatus.FORBIDDEN, 
+          `User limit reached! Your plan allows up to ${plan.userLimit} users.`
+        );
+      }
     }
   }
 
@@ -167,7 +173,9 @@ const getAllUsers = async (
 
   // 1. SUPER_ADMIN: সব দেখতে পারবে, তবে চাইলে নির্দিষ্ট organization ফিল্টার করতে পারবে
   if (decodedToken.role === Role.SUPER_ADMIN) {
-    if (query.organizationId) {
+    if (query.organizationId === "null") {
+      filter.organizationId = null;
+    } else if (query.organizationId) {
       filter.organizationId = query.organizationId;
     }
   }
