@@ -201,21 +201,20 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
     wallet = walletArray[0];
 
     // ==========================================
-    // 🔔 NOTIFICATION FOR SUPER ADMIN
+    // 🔔 NOTIFICATION FOR ALL ACTIVE SUPER ADMINS
     // ==========================================
     if (isSelfOrgRegistration) {
-      const superAdmin = await User.findOne({ role: Role.SUPER_ADMIN }).session(session);
-      if (superAdmin) {
-        await Notification.create([
-          {
-            recipient: superAdmin._id,
-            title: "New Organization Registration",
-            message: `A new organization "${user.name}" has registered and is waiting for approval.`,
-            type: NotificationType.SYSTEM,
-            isRead: false,
-            link: "/super-admin/organizations",
-          }
-        ], { session });
+      const superAdmins = await User.find({ role: Role.SUPER_ADMIN, isDeleted: false }).session(session);
+      if (superAdmins.length > 0) {
+        const notificationsPayload = superAdmins.map(admin => ({
+          recipient: admin._id,
+          title: "New Organization Registration",
+          message: `A new organization "${user.name}" has registered and is waiting for approval.`,
+          type: NotificationType.SYSTEM,
+          isRead: false,
+          link: "/super-admin/organizations",
+        }));
+        await Notification.create(notificationsPayload, { session });
       }
     }
 
@@ -231,17 +230,21 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
   // 📧 EMAILS & OTP (OUTSIDE TRANSACTION)
   // ==========================================
   if (isSelfOrgRegistration) {
-    sendEmail({
-      to: envVars.SUPER_ADMIN_EMAIL, 
-      subject: `New Organization Registration - ${user.name}`,
-      templateName: "organizationRequest",
-      templateData: {
-        applicantName: user.name,
-        applicantEmail: user.email,
-        department: user.department,
-        senderName: "System Notification"
-      },
-    }).catch(err => console.error("SMTP Org notification failed:", err));
+    User.find({ role: Role.SUPER_ADMIN, isDeleted: false }).then(superAdmins => {
+      superAdmins.forEach(admin => {
+        sendEmail({
+          to: admin.email, 
+          subject: `New Organization Registration - ${user.name}`,
+          templateName: "organizationRequest",
+          templateData: {
+            applicantName: user.name,
+            applicantEmail: user.email,
+            department: user.department,
+            senderName: "System Notification"
+          },
+        }).catch(err => console.error(`SMTP Org notification failed for ${admin.email}:`, err));
+      });
+    }).catch(err => console.error("Failed to query super admins for email notifications:", err));
   }
 
   const redisKey = `otp:${user.email}`;
