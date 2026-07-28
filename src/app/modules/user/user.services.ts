@@ -214,7 +214,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
           isRead: false,
           link: "/super-admin/organizations",
         }));
-        await Notification.create(notificationsPayload, { session });
+        await Notification.create(notificationsPayload, { session, ordered: true });
       }
     }
 
