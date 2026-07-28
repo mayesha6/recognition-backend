@@ -15,7 +15,7 @@ export const generateOtp = (length = 6) => {
     return otp
 }
 
-const verifySignupOtp = async (email: string, otp: number) => {
+const verifySignupOtp = async (email: string, otp: string | number) => {
   // Step 1: find user
   const user = await User.findOne({ email });
   if (!user) {
@@ -30,7 +30,7 @@ const verifySignupOtp = async (email: string, otp: number) => {
     throw new AppError(httpStatus.BAD_REQUEST, "OTP has expired or does not exist.");
   }
 
-  if (Number(storedOtp) !== otp) {
+  if (String(storedOtp) !== String(otp)) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
   }
 
