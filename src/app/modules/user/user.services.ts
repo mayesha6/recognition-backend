@@ -16,149 +16,228 @@ import { getCurrentQuarter } from "../../utils/wallet";
 import { Wallet } from "../wallet/wallet.model";
 import { SubscriptionStatus } from "../subscription/subscription.interface";
 import { Subscription } from "../subscription/subscription.model";
+import { Plan } from "../plan/plan.model";
+import mongoose from "mongoose";
 
 const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) => {
-  const { email, password, accountType, department, ...rest } = payload;
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
 
-  const isUserExist = await User.findOne({ email });
-  if (isUserExist) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
-  }
+    const { email, password, accountType, department, ...rest } = payload;
 
-  let role = Role.USER;
-  let organizationId = null;
-  let assignedDepartment = department || (accountType === AccountType.ORGANIZATION ? "Organization" : "Personal Account");
+    const isUserExist = await User.findOne({ email }).session(session);
+    if (isUserExist) {
+      throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
+    }
 
-  if (accountType === AccountType.ORGANIZATION && !creatorToken) {
-    role = Role.ORGANIZATION_ADMIN;
-  }
+    let role = Role.USER;
+    let organizationId = null;
+    let assignedDepartment = department || (accountType === AccountType.ORGANIZATION ? "Organization" : "Personal Account");
 
-  // ==========================================
-  // 🔥 SUBSCRIPTION & USER LIMIT CHECK
-  // ==========================================
-  if (creatorToken) {
-    if (creatorToken.role === Role.SUPER_ADMIN) {
-      role = payload.role || Role.SUPER_ADMIN;
-      organizationId = payload.organizationId || null;
-      assignedDepartment = department || "Personal Account";
-    } else {
-      if (creatorToken.role === Role.ORGANIZATION_ADMIN) {
-        organizationId = creatorToken.userId;
-        if (payload.role === Role.DEPARTMENT_ADMIN) {
-          role = Role.DEPARTMENT_ADMIN;
+    const isSelfOrgRegistration = accountType === AccountType.ORGANIZATION && !creatorToken;
+
+    if (isSelfOrgRegistration) {
+      role = Role.ORGANIZATION_ADMIN;
+    }
+
+    // ==========================================
+    // 🔥 SUBSCRIPTION & USER LIMIT CHECK
+    // ==========================================
+    if (creatorToken) {
+      if (creatorToken.role === Role.SUPER_ADMIN) {
+        role = payload.role || Role.SUPER_ADMIN;
+        organizationId = payload.organizationId || null;
+        assignedDepartment = department || "Personal Account";
+      } else {
+        if (creatorToken.role === Role.ORGANIZATION_ADMIN) {
+          organizationId = creatorToken.userId;
+          if (payload.role === Role.DEPARTMENT_ADMIN) {
+            role = Role.DEPARTMENT_ADMIN;
+          }
+        } else if (creatorToken.role === Role.DEPARTMENT_ADMIN) {
+          organizationId = creatorToken.organizationId;
+          assignedDepartment = creatorToken.department;
+          role = Role.USER; 
         }
-      } else if (creatorToken.role === Role.DEPARTMENT_ADMIN) {
-        organizationId = creatorToken.organizationId;
-        assignedDepartment = creatorToken.department;
-        role = Role.USER; 
-      }
 
-      // ডাটাবেজ থেকে রুট অর্গানাইজেশন এডমিনের ডাটা প্ল্যান সহ আনবো
-      const rootOrgAdmin = await User.findById(organizationId).populate("currentPlan");
+        const rootOrgAdmin = await User.findById(organizationId).populate("currentPlan").session(session);
 
-      if (!rootOrgAdmin) {
-        throw new AppError(httpStatus.NOT_FOUND, "Organization Admin not found");
-      }
+        if (!rootOrgAdmin) {
+          throw new AppError(httpStatus.NOT_FOUND, "Organization Admin not found");
+        }
 
-      // ১. সাবস্ক্রিপশন অ্যাক্টিভ আছে কি না চেক করা
-      if (
-        rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.ACTIVE &&
-        rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.TRIAL
-      ) {
-        throw new AppError(httpStatus.FORBIDDEN, "Organization subscription is not active. Please upgrade your plan.");
-      }
+        // ১. সাবস্ক্রিপশন অ্যাক্টিভ আছে কি না চেক করা
+        if (
+          rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.ACTIVE &&
+          rootOrgAdmin.subscriptionStatus !== SubscriptionStatus.TRIAL
+        ) {
+          throw new AppError(httpStatus.FORBIDDEN, "Organization subscription is not active. Please upgrade your plan.");
+        }
 
-      // ২. প্ল্যান লিমিট চেক করা
-      const plan = rootOrgAdmin.currentPlan as any; 
-      if (!plan || !plan.userLimit) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Active plan details not found");
-      }
+        // Dynamic trial expiration validation
+        if (rootOrgAdmin.subscriptionStatus === SubscriptionStatus.TRIAL) {
+          const sub = await Subscription.findOne({ user: organizationId, status: SubscriptionStatus.TRIAL }).session(session);
+          if (sub && sub.trialEnd && new Date() > new Date(sub.trialEnd)) {
+            await User.findByIdAndUpdate(organizationId, { subscriptionStatus: SubscriptionStatus.EXPIRED }).session(session);
+            await Subscription.findByIdAndUpdate(sub._id, { status: SubscriptionStatus.EXPIRED }).session(session);
+            throw new AppError(httpStatus.FORBIDDEN, "Organization trial subscription has expired. Please upgrade your plan.");
+          }
+        }
 
-      // বর্তমান ইউজারের সংখ্যা বের করা (অর্গানাইজেশন এডমিন বাদে)
-      const currentUserCount = await User.countDocuments({ 
-        organizationId, 
-        isDeleted: false 
-      });
+        // ২. প্ল্যান লিমিট চেক করা
+        const plan = rootOrgAdmin.currentPlan as any; 
+        if (!plan || !plan.userLimit) {
+          throw new AppError(httpStatus.BAD_REQUEST, "Active plan details not found");
+        }
 
-      if (currentUserCount >= plan.userLimit) {
-        throw new AppError(
-          httpStatus.FORBIDDEN, 
-          `User limit reached! Your plan allows up to ${plan.userLimit} users.`
-        );
+        const currentUserCount = await User.countDocuments({ 
+          organizationId, 
+          isDeleted: false 
+        }).session(session);
+
+        if (currentUserCount >= plan.userLimit) {
+          throw new AppError(
+            httpStatus.FORBIDDEN, 
+            `User limit reached! Your plan allows up to ${plan.userLimit} users.`
+          );
+        }
       }
     }
-  }
 
-  // ==========================================
-  // 🚀 USER CREATION
-  // ==========================================
-  const hashedPassword = await bcryptjs.hash(
-    password as string,
-    Number(envVars.BCRYPT_SALT_ROUND)
-  );
+    // ==========================================
+    // 🚀 PLAN PROVISIONING (FOR NEW ORGANIZATIONS)
+    // ==========================================
+    let trialPlanId = null;
+    if (isSelfOrgRegistration) {
+      let trialPlan = await Plan.findOne({ name: "Free Trial" }).session(session);
+      if (!trialPlan) {
+        const createdPlans = await Plan.create([
+          {
+            name: "Free Trial",
+            price: 0,
+            currency: "USD",
+            interval: "MONTH",
+            userLimit: 5,
+            allocatedPoints: 0,
+            features: ["Basic recognition", "Department tracking"],
+            isActive: true,
+            stripeProductId: null,
+            stripePriceId: null
+          }
+        ], { session });
+        trialPlan = createdPlans[0];
+      }
+      trialPlanId = trialPlan._id;
+    }
 
-  const status = AccountStatus.APPROVED;
+    // ==========================================
+    // 🚀 USER CREATION
+    // ==========================================
+    const hashedPassword = await bcryptjs.hash(
+      password as string,
+      Number(envVars.BCRYPT_SALT_ROUND)
+    );
 
-  const user = await User.create({
-    email,
-    password: hashedPassword,
-    accountType: organizationId ? AccountType.INDIVIDUAL : accountType,
-    role,
-    status,
-    department: assignedDepartment,
-    organizationId,
-    createdBy: creatorToken ? creatorToken.userId : null,
-    ...rest,
-  });
+    const status = isSelfOrgRegistration 
+      ? AccountStatus.PENDING 
+      : AccountStatus.APPROVED;
 
-  if (!user) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Failed to register user");
-  }
+    const userArray = await User.create([
+      {
+        email,
+        password: hashedPassword,
+        accountType: organizationId ? AccountType.INDIVIDUAL : accountType,
+        role,
+        status,
+        department: assignedDepartment,
+        organizationId,
+        createdBy: creatorToken ? creatorToken.userId : null,
+        subscriptionStatus: isSelfOrgRegistration ? SubscriptionStatus.TRIAL : null,
+        currentPlan: trialPlanId,
+        ...rest,
+      }
+    ], { session });
 
-  // অর্গানাইজেশন এডমিন প্রথমবার রেজিস্ট্রেশন করলে ইমেইল যাবে
-  if (accountType === AccountType.ORGANIZATION && !creatorToken) {
-    await sendEmail({
-      to: envVars.EMAIL_SENDER.SMTP_FROM, 
-      subject: `New Organization Registration - ${user.name}`,
-      templateName: "organizationRequest",
-      templateData: {
-        applicantName: user.name,
-        applicantEmail: user.email,
-        department: user.department,
-        senderName: "System Notification"
-      },
+    const user = userArray[0];
+
+    // ==========================================
+    // 🚀 SUBSCRIPTION PROVISIONING (7 DAYS TRIAL)
+    // ==========================================
+    if (isSelfOrgRegistration) {
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
+
+      await Subscription.create([
+        {
+          user: user._id,
+          plan: trialPlanId,
+          status: SubscriptionStatus.TRIAL,
+          trialEnd: trialEndDate,
+          currentPeriodEnd: trialEndDate,
+        }
+      ], { session });
+    }
+
+    const { quarter, year } = getCurrentQuarter();
+
+    const walletArray = await Wallet.create([
+      {
+        user: user._id,
+        organizationId: user.organizationId || user._id,
+        quarter,
+        year,
+        pointsAllocated: 0,
+        pointsBalance: 0
+      }
+    ], { session });
+
+    const wallet = walletArray[0];
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // ==========================================
+    // 📧 EMAILS & OTP (OUTSIDE TRANSACTION)
+    // ==========================================
+    if (isSelfOrgRegistration) {
+      sendEmail({
+        to: envVars.EMAIL_SENDER.SMTP_FROM, 
+        subject: `New Organization Registration - ${user.name}`,
+        templateName: "organizationRequest",
+        templateData: {
+          applicantName: user.name,
+          applicantEmail: user.email,
+          department: user.department,
+          senderName: "System Notification"
+        },
+      }).catch(err => console.error("SMTP notification failed:", err));
+    }
+
+    const redisKey = `otp:${email}`;
+    const otp = generateOtp();
+
+    await redisClient.set(redisKey, otp, {
+      expiration: { type: "EX", value: 120 },
     });
+
+    sendEmail({
+      to: email,
+      subject: "Account Verification OTP",
+      templateName: "otp",
+      templateData: {
+        name: user.name,
+        otp,
+      },
+    }).catch(err => console.error("OTP send failed:", err));
+
+    return { wallet, user };
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  const { quarter, year } = getCurrentQuarter();
-
-  const wallet = await Wallet.create({
-    user: user._id,
-    organizationId: user.organizationId || user._id,
-    quarter,
-    year,
-    pointsAllocated: 0,
-    pointsBalance: 0
-  });
-
-  const redisKey = `otp:${email}`;
-  const otp = generateOtp();
-
-  await redisClient.set(redisKey, otp, {
-    expiration: { type: "EX", value: 120 },
-  });
-
-  await sendEmail({
-    to: email,
-    subject: "Account Verification OTP",
-    templateName: "otp",
-    templateData: {
-      name: user.name,
-      otp,
-    },
-  });
-
-  return { wallet, user };
 };
 
 const getAllUsers = async (
