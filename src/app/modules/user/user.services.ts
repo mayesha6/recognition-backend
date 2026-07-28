@@ -18,9 +18,16 @@ import { SubscriptionStatus } from "../subscription/subscription.interface";
 import { Subscription } from "../subscription/subscription.model";
 import { Plan } from "../plan/plan.model";
 import mongoose from "mongoose";
+import { Notification } from "../notification/notification.model";
+import { NotificationType } from "../notification/notification.interface";
 
 const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) => {
   const session = await mongoose.startSession();
+  let user: any;
+  let wallet: any;
+  let isSelfOrgRegistration = false;
+  let trialPlanId = null;
+
   try {
     session.startTransaction();
 
@@ -35,7 +42,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
     let organizationId = null;
     let assignedDepartment = department || (accountType === AccountType.ORGANIZATION ? "Organization" : "Personal Account");
 
-    const isSelfOrgRegistration = accountType === AccountType.ORGANIZATION && !creatorToken;
+    isSelfOrgRegistration = accountType === AccountType.ORGANIZATION && !creatorToken;
 
     if (isSelfOrgRegistration) {
       role = Role.ORGANIZATION_ADMIN;
@@ -108,7 +115,6 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
     // ==========================================
     // 🚀 PLAN PROVISIONING (FOR NEW ORGANIZATIONS)
     // ==========================================
-    let trialPlanId = null;
     if (isSelfOrgRegistration) {
       let trialPlan = await Plan.findOne({ name: "Free Trial" }).session(session);
       if (!trialPlan) {
@@ -159,7 +165,7 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
       }
     ], { session });
 
-    const user = userArray[0];
+    user = userArray[0];
 
     // ==========================================
     // 🚀 SUBSCRIPTION PROVISIONING (7 DAYS TRIAL)
@@ -192,52 +198,70 @@ const createUser = async (payload: Partial<IUser>, creatorToken?: JwtPayload) =>
       }
     ], { session });
 
-    const wallet = walletArray[0];
-
-    await session.commitTransaction();
-    session.endSession();
+    wallet = walletArray[0];
 
     // ==========================================
-    // 📧 EMAILS & OTP (OUTSIDE TRANSACTION)
+    // 🔔 NOTIFICATION FOR SUPER ADMIN
     // ==========================================
     if (isSelfOrgRegistration) {
-      sendEmail({
-        to: envVars.EMAIL_SENDER.SMTP_FROM, 
-        subject: `New Organization Registration - ${user.name}`,
-        templateName: "organizationRequest",
-        templateData: {
-          applicantName: user.name,
-          applicantEmail: user.email,
-          department: user.department,
-          senderName: "System Notification"
-        },
-      }).catch(err => console.error("SMTP notification failed:", err));
+      const superAdmin = await User.findOne({ role: Role.SUPER_ADMIN }).session(session);
+      if (superAdmin) {
+        await Notification.create([
+          {
+            recipient: superAdmin._id,
+            title: "New Organization Registration",
+            message: `A new organization "${user.name}" has registered and is waiting for approval.`,
+            type: NotificationType.SYSTEM,
+            isRead: false,
+            link: "/super-admin/organizations",
+          }
+        ], { session });
+      }
     }
 
-    const redisKey = `otp:${email}`;
-    const otp = generateOtp();
-
-    await redisClient.set(redisKey, otp, {
-      expiration: { type: "EX", value: 120 },
-    });
-
-    sendEmail({
-      to: email,
-      subject: "Account Verification OTP",
-      templateName: "otp",
-      templateData: {
-        name: user.name,
-        otp,
-      },
-    }).catch(err => console.error("OTP send failed:", err));
-
-    return { wallet, user };
-
+    await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
-    session.endSession();
     throw error;
+  } finally {
+    session.endSession();
   }
+
+  // ==========================================
+  // 📧 EMAILS & OTP (OUTSIDE TRANSACTION)
+  // ==========================================
+  if (isSelfOrgRegistration) {
+    sendEmail({
+      to: envVars.SUPER_ADMIN_EMAIL, 
+      subject: `New Organization Registration - ${user.name}`,
+      templateName: "organizationRequest",
+      templateData: {
+        applicantName: user.name,
+        applicantEmail: user.email,
+        department: user.department,
+        senderName: "System Notification"
+      },
+    }).catch(err => console.error("SMTP Org notification failed:", err));
+  }
+
+  const redisKey = `otp:${user.email}`;
+  const otp = generateOtp();
+
+  await redisClient.set(redisKey, otp, {
+    expiration: { type: "EX", value: 120 },
+  });
+
+  await sendEmail({
+    to: user.email,
+    subject: "Account Verification OTP",
+    templateName: "otp",
+    templateData: {
+      name: user.name,
+      otp,
+    },
+  });
+
+  return { wallet, user };
 };
 
 const getAllUsers = async (
