@@ -299,6 +299,7 @@ const getAllUsers = async (
   if (decodedToken.role === Role.DEPARTMENT_ADMIN) {
     filter.organizationId = decodedToken.organizationId;
     filter.department = decodedToken.department;
+    filter._id = { $ne: decodedToken.userId };
   }
 
   // 4. REGULAR USER: নিজের অর্গানাইজেশনের এবং নিজের ডিপার্টমেন্টের অন্য ইউজারদের দেখতে পারবে
@@ -306,6 +307,7 @@ const getAllUsers = async (
     filter.organizationId = decodedToken.organizationId;
     filter.department = decodedToken.department;
     filter.role = Role.USER; // সাধারণ ইউজারদের Admin দের দেখার দরকার নেই
+    filter._id = { $ne: decodedToken.userId };
   }
 
   // Prevent QueryBuilder from using organizationId from raw query
