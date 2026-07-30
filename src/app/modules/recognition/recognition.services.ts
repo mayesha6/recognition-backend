@@ -14,7 +14,7 @@ import { IRecognition, RecognitionStatus } from "./recognition.interface";
 import { AiMessage } from "../aiMessenger/aiMessage.model";
 import { normalizeRecognitionValues } from "../../utils/normalizeRecognitionValues";
 import { JwtPayload } from "jsonwebtoken";
-import { Role } from "../user/user.interface";
+import { Role, AccountType } from "../user/user.interface";
 
 const sendRecognition = async (
   senderToken: JwtPayload,
@@ -80,11 +80,13 @@ const sendRecognition = async (
     
     // 🔥 SaaS Isolation: Prevent Cross-Tenant Sending
     if (receiver && senderToken.role !== Role.SUPER_ADMIN) {
-      const senderOrgId = sender.organizationId?.toString() || sender._id.toString();
-      const receiverOrgId = receiver.organizationId?.toString() || receiver._id.toString();
+      if (sender.accountType === AccountType.ORGANIZATION || receiver.accountType === AccountType.ORGANIZATION) {
+        const senderOrgId = sender.organizationId?.toString() || sender._id.toString();
+        const receiverOrgId = receiver.organizationId?.toString() || receiver._id.toString();
 
-      if (senderOrgId !== receiverOrgId) {
-        throw new AppError(httpStatus.FORBIDDEN, "You can only send recognition within your organization");
+        if (senderOrgId !== receiverOrgId) {
+          throw new AppError(httpStatus.FORBIDDEN, "You can only send recognition within your organization");
+        }
       }
     }
 
