@@ -13,7 +13,12 @@ const createCategory = async (payload: any, user: JwtPayload) => {
     organizationId = user.userId;
   }
 
-  const existingCategory = await Category.findOne({ name: payload.name, organizationId });
+  // Prevent creating duplicate categories within the same organization context (case-insensitive)
+  const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const existingCategory = await Category.findOne({
+    name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+    organizationId,
+  });
   if (existingCategory) {
     throw new AppError(httpStatus.BAD_REQUEST, "Category with this name already exists");
   }
@@ -62,14 +67,27 @@ const verifyCategoryAccess = async (categoryId: string, user: JwtPayload) => {
 };
 
 const updateCategory = async (id: string, payload: any, user: JwtPayload) => {
-  await verifyCategoryAccess(id, user);
+  const category = await verifyCategoryAccess(id, user);
 
-  const category = await Category.findByIdAndUpdate(id, payload, {
+  // Enforce unique category name constraint inside the same organization (case-insensitive)
+  if (payload.name) {
+    const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existingCategory = await Category.findOne({
+      name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+      organizationId: category.organizationId,
+      _id: { $ne: id },
+    });
+    if (existingCategory) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Category with this name already exists");
+    }
+  }
+
+  const updatedCategory = await Category.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
 
-  return category;
+  return updatedCategory;
 };
 
 const extractS3Key = (url: string) => {

@@ -11,8 +11,12 @@ const createRecognitionValue = async (payload: any, user: JwtPayload) => {
     organizationId = user.userId;
   }
 
-  // Prevent creating duplicate recognition values within the same organization context
-  const existingRecognitionValue = await RecognitionValue.findOne({ name: payload.name, organizationId });
+  // Prevent creating duplicate recognition values within the same organization context (case-insensitive)
+  const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const existingRecognitionValue = await RecognitionValue.findOne({
+    name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+    organizationId,
+  });
   if (existingRecognitionValue) {
     throw new AppError(httpStatus.BAD_REQUEST, "Recognition value with this name already exists");
   }
@@ -57,6 +61,19 @@ const updateRecognitionValue = async (id: string, payload: any, user: JwtPayload
   if (user.role === Role.ORGANIZATION_ADMIN) {
     if (!recognitionValue.organizationId || recognitionValue.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this recognition value");
+    }
+  }
+
+  // Enforce unique recognition value name constraint inside the same organization (case-insensitive)
+  if (payload.name) {
+    const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existingRecognitionValue = await RecognitionValue.findOne({
+      name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+      organizationId: recognitionValue.organizationId,
+      _id: { $ne: id },
+    });
+    if (existingRecognitionValue) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Recognition value with this name already exists");
     }
   }
 

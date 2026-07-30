@@ -11,8 +11,12 @@ const createDepartment = async (payload: any, user: JwtPayload) => {
     organizationId = user.userId;
   }
 
-  // Prevent creating duplicate departments within the same organization context
-  const existingDepartment = await Department.findOne({ name: payload.name, organizationId });
+  // Prevent creating duplicate departments within the same organization context (case-insensitive)
+  const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const existingDepartment = await Department.findOne({
+    name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+    organizationId,
+  });
   if (existingDepartment) {
     throw new AppError(httpStatus.BAD_REQUEST, "Department with this name already exists");
   }
@@ -116,10 +120,11 @@ const updateDepartment = async (id: string, payload: any, user: JwtPayload) => {
   const oldName = department.name;
   const newName = payload.name || oldName;
 
-  // Enforce unique department name constraint inside the same organization
+  // Enforce unique department name constraint inside the same organization (case-insensitive)
   if (payload.name && payload.name !== department.name) {
+    const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const existingDepartment = await Department.findOne({
-      name: payload.name,
+      name: { $regex: new RegExp(`^${escapedName}$`, "i") },
       organizationId: department.organizationId,
       _id: { $ne: id },
     });

@@ -11,8 +11,12 @@ const createTone = async (payload: any, user: JwtPayload) => {
     organizationId = user.userId;
   }
 
-  // Prevent creating duplicate tones within the same organization context
-  const existingTone = await Tone.findOne({ name: payload.name, organizationId });
+  // Prevent creating duplicate tones within the same organization context (case-insensitive)
+  const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const existingTone = await Tone.findOne({
+    name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+    organizationId,
+  });
   if (existingTone) {
     throw new AppError(httpStatus.BAD_REQUEST, "Tone with this name already exists");
   }
@@ -57,6 +61,19 @@ const updateTone = async (id: string, payload: any, user: JwtPayload) => {
   if (user.role === Role.ORGANIZATION_ADMIN) {
     if (!tone.organizationId || tone.organizationId.toString() !== user.userId.toString()) {
       throw new AppError(httpStatus.FORBIDDEN, "You cannot modify this tone");
+    }
+  }
+
+  // Enforce unique tone name constraint inside the same organization (case-insensitive)
+  if (payload.name) {
+    const escapedName = payload.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existingTone = await Tone.findOne({
+      name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+      organizationId: tone.organizationId,
+      _id: { $ne: id },
+    });
+    if (existingTone) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Tone with this name already exists");
     }
   }
 
