@@ -281,6 +281,7 @@ const getAllUsers = async (
   if (decodedToken.role === Role.SUPER_ADMIN) {
     if (query.organizationId === "null") {
       filter.organizationId = null;
+      filter.accountType = AccountType.INDIVIDUAL;
       // For global user management, super admin only wants to see SUPER_ADMIN and USER roles by default
       if (!query.role) {
         filter.role = { $in: [Role.SUPER_ADMIN, Role.USER] };
