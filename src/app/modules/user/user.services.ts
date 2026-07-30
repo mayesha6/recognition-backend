@@ -693,6 +693,31 @@ const deleteUserById = async (
   return user;
 };
 
+const getUserBySlug = async (slug: string) => {
+  // Find all organization admins
+  const orgs = await User.find({ role: Role.ORGANIZATION_ADMIN }).lean();
+
+  const slugify = (text: string): string => {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w\-]+/g, "")
+      .replace(/\-\-+/g, "-")
+      .replace(/^-+/, "")
+      .replace(/-+$/, "");
+  };
+
+  // Find the one that matches the slug
+  const matchingOrg = orgs.find(org => slugify(org.name) === slug);
+  if (!matchingOrg) {
+    throw new AppError(httpStatus.NOT_FOUND, "Organization not found");
+  }
+
+  return matchingOrg;
+};
+
 export const UserServices = {
   createUser,
   approveOrganization,
@@ -700,6 +725,7 @@ export const UserServices = {
   getAllUsers,
   getMe,
   getSingleUser,
+  getUserBySlug,
   updateUser,
   updateMyProfile,
   deleteOwnAccount,

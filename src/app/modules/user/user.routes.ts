@@ -34,6 +34,12 @@ router.patch(
   UserControllers.updateMyProfile
 );
 router.get(
+  "/by-slug/:slug",
+  checkAuth(Role.SUPER_ADMIN),
+  UserControllers.getUserBySlug
+);
+
+router.get(
   "/:id",
   checkAuth(Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.SUPER_ADMIN, Role.USER),
   UserControllers.getSingleUser

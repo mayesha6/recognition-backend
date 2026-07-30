@@ -192,6 +192,18 @@ const deleteAllUsers = catchAsync(
   }
 );
 
+const getUserBySlug = catchAsync(async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const result = await UserServices.getUserBySlug(slug);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "User fetched successfully by slug",
+    data: result,
+  });
+});
+
 export const UserControllers = {
   createUser,
   approveOrganization,
@@ -199,6 +211,7 @@ export const UserControllers = {
   getAllUsers,
   getMe,
   getSingleUser,
+  getUserBySlug,
   updateUser,
   updateMyProfile,
   deleteOwnAccount,
