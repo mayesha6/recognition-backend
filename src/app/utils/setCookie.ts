@@ -11,7 +11,8 @@ export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
     const cookieOptions = {
         httpOnly: true,
         secure: isProduction,
-        sameSite: isProduction ? ("none" as const) : ("lax" as const)
+        sameSite: "lax" as const,
+        domain: isProduction ? ".greetely.com" : undefined
     };
 
     if (tokenInfo.accessToken) {
