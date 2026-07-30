@@ -193,9 +193,45 @@ const deleteDepartment = async (id: string, user: JwtPayload) => {
   return department;
 };
 
+const getPublicDepartments = async () => {
+  const departments = await Department.find({ organizationId: null }).sort({ createdAt: -1 }).lean();
+
+  const enrichedDepartments = await Promise.all(
+    departments.map(async (dept: any) => {
+      // Find the department admin
+      const adminFilter: any = {
+        department: dept.name,
+        role: Role.DEPARTMENT_ADMIN,
+        organizationId: null
+      };
+      const adminUser = await User.findOne(adminFilter).lean();
+
+      // Count employees in this department
+      const employeeFilter: any = {
+        department: dept.name,
+        organizationId: null
+      };
+      const employees = await User.countDocuments(employeeFilter);
+
+      return {
+        ...dept,
+        id: dept._id.toString(),
+        admin: adminUser ? adminUser.name : "N/A",
+        adminEmail: adminUser ? adminUser.email : "",
+        adminId: adminUser ? adminUser._id.toString() : "",
+        employees,
+        recognitions: 0
+      };
+    })
+  );
+
+  return enrichedDepartments;
+};
+
 export const DepartmentService = {
   createDepartment,
   getDepartments,
+  getPublicDepartments,
   updateDepartment,
   deleteDepartment,
 };

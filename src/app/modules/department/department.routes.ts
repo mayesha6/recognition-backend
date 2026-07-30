@@ -12,6 +12,11 @@ router.post(
 );
 
 router.get(
+  "/public",
+  DepartmentController.getPublicDepartments
+);
+
+router.get(
   "/",
   checkAuth(Role.SUPER_ADMIN, Role.ORGANIZATION_ADMIN, Role.DEPARTMENT_ADMIN, Role.USER),
   DepartmentController.getDepartments

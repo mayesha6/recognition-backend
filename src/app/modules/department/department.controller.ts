@@ -57,9 +57,21 @@ const deleteDepartment = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getPublicDepartments = catchAsync(async (req: Request, res: Response) => {
+  const result = await DepartmentService.getPublicDepartments();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Public departments fetched successfully",
+    data: result,
+  });
+});
+
 export const DepartmentController = {
   createDepartment,
   getDepartments,
+  getPublicDepartments,
   updateDepartment,
   deleteDepartment,
 };
