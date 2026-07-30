@@ -695,7 +695,7 @@ const deleteUserById = async (
 
 const getUserBySlug = async (slug: string) => {
   // Find all organization admins
-  const orgs = await User.find({ role: Role.ORGANIZATION_ADMIN }).lean();
+  const orgs = await User.find({ accountType: AccountType.ORGANIZATION }).lean();
 
   const slugify = (text: string): string => {
     return text
