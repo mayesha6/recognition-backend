@@ -43,11 +43,17 @@ const createDepartment = async (payload: any, user: JwtPayload) => {
 import { User } from "../user/user.model";
 import { Recognition } from "../recognition/recognition.model";
 
-const getDepartments = async (user: JwtPayload) => {
+const getDepartments = async (user: JwtPayload, query?: Record<string, any>) => {
   const filter: any = {};
 
   if (user.role === Role.SUPER_ADMIN) {
-    filter.organizationId = null;
+    if (query?.organizationId === "null") {
+      filter.organizationId = null;
+    } else if (query?.organizationId) {
+      filter.organizationId = query.organizationId;
+    } else {
+      filter.organizationId = null;
+    }
   } else {
     filter.organizationId = user.organizationId || user.userId;
   }

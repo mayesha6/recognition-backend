@@ -19,7 +19,7 @@ const createDepartment = catchAsync(async (req: Request, res: Response) => {
 
 const getDepartments = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload;
-  const result = await DepartmentService.getDepartments(user);
+  const result = await DepartmentService.getDepartments(user, req.query);
 
   sendResponse(res, {
     success: true,
