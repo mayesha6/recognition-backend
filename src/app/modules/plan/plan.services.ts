@@ -35,6 +35,14 @@ const createPlan = async (payload: any) => {
         productId = null;
         priceId = null;
       } else {
+        if (productId) {
+          try {
+            await stripe.products.retrieve(productId);
+          } catch (error) {
+            productId = null;
+          }
+        }
+
         if (!productId) {
           const stripeProduct = await stripe.products.create({
             name: payload.name,
@@ -176,6 +184,14 @@ const updatePlan = async (id: string, payload: any) => {
   if (payload.price !== undefined || payload.interval !== undefined) {
     let productId = plan.stripeProductId;
 
+    if (productId) {
+      try {
+        await stripe.products.retrieve(productId);
+      } catch (error) {
+        productId = null;
+      }
+    }
+
     // Handle Free to Paid conversion
     if (!productId && (payload.price ?? plan.price) > 0) {
       const stripeProduct = await stripe.products.create({
@@ -199,7 +215,11 @@ const updatePlan = async (id: string, payload: any) => {
 
       // Archive old price in Stripe to keep dashboard clean
       if (plan.stripePriceId) {
-        await stripe.prices.update(plan.stripePriceId, { active: false });
+        try {
+          await stripe.prices.update(plan.stripePriceId, { active: false });
+        } catch (e) {
+          // Ignore error if old Stripe price doesn't exist
+        }
       }
 
       updatedData.stripePriceId = newPrice.id;
