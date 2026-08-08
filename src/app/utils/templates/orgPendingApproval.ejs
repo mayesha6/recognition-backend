@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Registration Received - Pending Approval</title>
+</head>
+<body style="font-family: Arial, sans-serif; background:#f4f6f8; padding:30px; margin:0;">
+  <div style="max-width:600px; background:#ffffff; margin:auto; padding:30px; border-radius:8px; border:1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+    
+    <h2 style="color:#d97706; margin-top:0;">
+      Registration Received!
+    </h2>
+    
+    <p style="color:#2c3e50; font-size:16px; line-height:1.6;">
+      Hi <%= name %>,
+    </p>
+    
+    <p style="color:#555555; font-size:14px; line-height:1.6;">
+      Thank you for registering your organization with <strong>Greetely</strong>. Your email has been verified successfully!
+    </p>
+
+    <p style="color:#555555; font-size:14px; line-height:1.6; background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: 6px;">
+      <strong>Status: Pending Admin Approval</strong><br/>
+      Your registration request has been submitted to the platform administrator. Once it is approved, you will receive a confirmation email and be able to log in to your dashboard.
+    </p>
+
+    <hr style="border:0; border-top:1px solid #e2e8f0; margin:20px 0;"/>
+
+    <div style="background:#f8fafc; padding:15px; border-radius:6px; border:1px solid #edf2f7; font-size:14px; color:#4a5568;">
+      <p style="margin:5px 0;"><strong>Company Name:</strong> <%= companyName %></p>
+      <p style="margin:5px 0;"><strong>Email:</strong> <%= email %></p>
+      <p style="margin:5px 0;"><strong>Phone:</strong> <%= phone %></p>
+      <p style="margin:5px 0;"><strong>Account Type:</strong> Organization Admin</p>
+    </div>
+
+    <br/>
+    
+    <p style="color:#888888; font-size:12px; line-height:1.5;">
+      This is an automated email. If you have any questions or require assistance, please feel free to reach out to our support team.
+    </p>
+
+  </div>
+</body>
+</html>

@@ -42,6 +42,7 @@ export interface IUser {
   role: Role;
   department: string; 
   phone?: string;
+  companyName?: string;
   accountType: AccountType;
   status: AccountStatus;
   auths: IAuthProvider[];

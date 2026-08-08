@@ -23,7 +23,9 @@ export const createUserZodSchema = z.object({
     .regex(/^(?=.*\d)/, {
       message: "Password must contain at least 1 number.",
     }),
-    department: z.string().optional()
+    department: z.string().optional(),
+    companyName: z.string().optional(),
+    phone: z.string().optional()
 });
 
 export const updateUserZodSchema = z.object({
@@ -33,6 +35,7 @@ export const updateUserZodSchema = z.object({
       message: "Phone number must be valid for Bangladesh. Format: +8801XXXXXXXXX or 01XXXXXXXXX",
     })
     .optional(),
+  companyName: z.string().optional(),
   role: z.enum(Object.values(Role) as [string, ...string[]]).optional(),
   isActive: z.enum(Object.values(IsActive) as [string, ...string[]]).optional(),
   isDeleted: z.boolean().optional(),

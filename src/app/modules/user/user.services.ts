@@ -303,10 +303,9 @@ const getAllUsers = async (
     filter._id = { $ne: decodedToken.userId };
   }
 
-  // 4. REGULAR USER: নিজের অর্গানাইজেশনের এবং নিজের ডিপার্টমেন্টের অন্য ইউজারদের দেখতে পারবে
+  // 4. REGULAR USER: নিজের অর্গানাইজেশনের অন্য ইউজারদের দেখতে পারবে
   if (decodedToken.role === Role.USER) {
     filter.organizationId = decodedToken.organizationId;
-    filter.department = decodedToken.department;
     filter.role = Role.USER; // সাধারণ ইউজারদের Admin দের দেখার দরকার নেই
     filter._id = { $ne: decodedToken.userId };
   }
@@ -407,6 +406,21 @@ const approveOrganization = async (userId: string) => {
   user.role = Role.ORGANIZATION_ADMIN;
 
   await user.save();
+
+  // Send registration success/approval confirmation email
+  sendEmail({
+    to: user.email,
+    subject: "Successful Registration - Welcome to Greetely",
+    templateName: "registrationSuccess",
+    templateData: {
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "N/A",
+      companyName: user.companyName || "N/A",
+      accountType: user.accountType,
+      senderName: "Greetely Team",
+    },
+  }).catch((err) => console.error("Email approval notification failed:", err));
 
   return user;
 };
@@ -590,11 +604,7 @@ const getSingleUser = async (id: string, decodedToken: JwtPayload) => {
       throw new AppError(httpStatus.FORBIDDEN, "Not authorized to view users from another organization");
     }
 
-    if (decodedToken.role === Role.DEPARTMENT_ADMIN || decodedToken.role === Role.USER) {
-      if (user.department !== decodedToken.department) {
-        throw new AppError(httpStatus.FORBIDDEN, "Not authorized to view users outside your department");
-      }
-    }
+    // We allow viewing details of any user in the same organization (tenant isolation is checked above)
   }
 
   const { year, quarter } = getCurrentQuarter();

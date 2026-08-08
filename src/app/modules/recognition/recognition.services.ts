@@ -118,9 +118,7 @@ const sendRecognition = async (
     if (receiver) {
       receiverDepartment = receiver.department;
       
-      if (aiMessage.department && aiMessage.department !== receiver.department) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Receiver department does not match the AI recognition intent");
-      }
+      // We bypass checking if aiMessage.department matches receiver.department since cross-department recognition is allowed
 
       await Wallet.updateOne(
         { user: receiver._id, year, quarter },
