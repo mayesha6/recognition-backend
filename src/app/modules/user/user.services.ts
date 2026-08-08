@@ -451,7 +451,7 @@ const rejectOrganization = async (userId: string) => {
 
 const getMe = async (userId: string) => {
   const user = await User.findById(userId)
-    .populate("organizationId", "name email picture")
+    .populate("organizationId", "name email picture companyName")
     .select("-password");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
@@ -720,7 +720,7 @@ const getUserBySlug = async (slug: string) => {
   };
 
   // Find the one that matches the slug
-  const matchingOrg = orgs.find(org => slugify(org.name) === slug);
+  const matchingOrg = orgs.find(org => slugify(org.companyName || org.name) === slug);
   if (!matchingOrg) {
     throw new AppError(httpStatus.NOT_FOUND, "Organization not found");
   }
