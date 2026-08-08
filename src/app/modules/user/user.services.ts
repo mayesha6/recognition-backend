@@ -499,7 +499,7 @@ const updateMyProfile = async ({
   // ===============================
   // 🔐 ONLY ALLOWED FIELDS
   // ===============================
-  const allowedFields = ["name", "department", "accountType", "phone"];
+  const allowedFields = ["name", "department", "accountType", "phone", "companyName"];
 
   const filteredPayload: any = {};
 

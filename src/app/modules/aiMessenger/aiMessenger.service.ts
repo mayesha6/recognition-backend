@@ -13,6 +13,25 @@ import { Types } from "mongoose";
 
 const CACHE_TTL = 600; // 10 minutes
 
+const handleAiError = (error: any) => {
+    let errMessage =
+        error?.response?.data?.detail
+            ? typeof error.response.data.detail === "string"
+                ? error.response.data.detail
+                : JSON.stringify(error.response.data.detail)
+            : error.message || "AI service failed";
+
+    if (errMessage.includes("Incorrect API key") || errMessage.includes("invalid_api_key") || errMessage.includes("401")) {
+        errMessage = "AI service is temporarily unavailable due to an invalid API key configuration. Please contact support.";
+    } else if (errMessage.includes("quota") || errMessage.includes("billing") || errMessage.includes("insufficient_quota")) {
+        errMessage = "AI service is temporarily unavailable due to insufficient balance/quota. Please check billing status.";
+    } else if (errMessage.includes("Rate limit") || errMessage.includes("rate_limit") || errMessage.includes("429")) {
+        errMessage = "AI service limit reached. Please try again after some time.";
+    }
+
+    return new AppError(httpStatus.BAD_GATEWAY, errMessage);
+};
+
 const generateMessage = async (
     userId: string,
     payload: IRegenerateInput
@@ -30,14 +49,7 @@ const generateMessage = async (
         );
         data = response.data;
     } catch (error: any) {
-        const errMessage =
-            error?.response?.data?.detail
-                ? typeof error.response.data.detail === "string"
-                    ? error.response.data.detail
-                    : JSON.stringify(error.response.data.detail)
-                : error.message || "AI service failed";
-
-        throw new AppError(httpStatus.BAD_GATEWAY, errMessage);
+        throw handleAiError(error);
     }
 
     const savedMessage = await AiMessage.create({
@@ -77,14 +89,7 @@ const regenerateMessage = async (
         );
         data = response.data;
     } catch (error: any) {
-        const errMessage =
-            error?.response?.data?.detail
-                ? typeof error.response.data.detail === "string"
-                    ? error.response.data.detail
-                    : JSON.stringify(error.response.data.detail)
-                : error.message || "AI service failed";
-
-        throw new AppError(httpStatus.BAD_GATEWAY, errMessage);
+        throw handleAiError(error);
     }
 
     const savedMessage = await AiMessage.create({
