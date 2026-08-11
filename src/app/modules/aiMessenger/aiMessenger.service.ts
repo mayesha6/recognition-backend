@@ -33,23 +33,9 @@ const handleAiError = (error: any) => {
     return new AppError(httpStatus.BAD_GATEWAY, errMessage);
 };
 
-interface IAiServiceInput {
-    category: string;
-    department: string;
-    recipient_name: string;
-    recognition_values: Array<{ value: string; description: string }>;
-    tone: string;
-    userPrompt?: string;
-}
-
-const enrichPayload = async (payload: IRegenerateInput): Promise<IAiServiceInput> => {
-    const defaultVal: IAiServiceInput = {
-        ...payload,
-        recognition_values: (payload.recognition_values || []).map(val => ({ value: val, description: "" }))
-    };
-
+const enrichPayload = async (payload: IRegenerateInput): Promise<IRegenerateInput> => {
     if (!payload.recognition_values || payload.recognition_values.length === 0) {
-        return defaultVal;
+        return payload;
     }
 
     try {
@@ -57,23 +43,24 @@ const enrichPayload = async (payload: IRegenerateInput): Promise<IAiServiceInput
             name: { $in: payload.recognition_values }
         });
 
-        const enrichedValues = payload.recognition_values.map((val: string) => {
-            const match = recValues.find(rv => rv.name === val);
-            return {
-                value: val,
-                description: match?.description || ""
-            };
-        });
+        const contextLines = recValues
+            .filter(v => v.description && v.description.trim())
+            .map(v => `- "${v.name}": ${v.description.trim()}`);
 
-        return {
-            ...payload,
-            recognition_values: enrichedValues
-        };
+        if (contextLines.length > 0) {
+            const contextPrompt = `Here is the specific meaning/context for the selected recognition values. Please align the generated message with these definitions:\n${contextLines.join("\n")}`;
+            return {
+                ...payload,
+                userPrompt: payload.userPrompt 
+                    ? `${payload.userPrompt}\n\n${contextPrompt}`
+                    : contextPrompt
+            };
+        }
     } catch (error) {
         console.error("Failed to enrich payload with recognition value descriptions:", error);
     }
 
-    return defaultVal;
+    return payload;
 };
 
 const generateMessage = async (
