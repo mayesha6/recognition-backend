@@ -33,9 +33,23 @@ const handleAiError = (error: any) => {
     return new AppError(httpStatus.BAD_GATEWAY, errMessage);
 };
 
-const enrichPayload = async (payload: IRegenerateInput): Promise<IRegenerateInput> => {
+interface IAiServiceInput {
+    category: string;
+    department: string;
+    recipient_name: string;
+    recognition_values: Array<{ value: string; description?: string }>;
+    tone: string;
+    userPrompt?: string;
+}
+
+const enrichPayload = async (payload: IRegenerateInput): Promise<IAiServiceInput> => {
+    const defaultVal: IAiServiceInput = {
+        ...payload,
+        recognition_values: (payload.recognition_values || []).map(val => ({ value: val }))
+    };
+
     if (!payload.recognition_values || payload.recognition_values.length === 0) {
-        return payload;
+        return defaultVal;
     }
 
     try {
@@ -43,24 +57,24 @@ const enrichPayload = async (payload: IRegenerateInput): Promise<IRegenerateInpu
             name: { $in: payload.recognition_values }
         });
 
-        const contextLines = recValues
-            .filter(v => v.description && v.description.trim())
-            .map(v => `- "${v.name}": ${v.description.trim()}`);
+        const enrichedValues = payload.recognition_values.map((val: string) => {
+            const match = recValues.find(rv => rv.name === val);
+            const obj: { value: string; description?: string } = { value: val };
+            if (match?.description && match.description.trim()) {
+                obj.description = match.description.trim();
+            }
+            return obj;
+        });
 
-        if (contextLines.length > 0) {
-            const contextPrompt = `Here is the specific meaning/context for the selected recognition values. Please align the generated message with these definitions:\n${contextLines.join("\n")}`;
-            return {
-                ...payload,
-                userPrompt: payload.userPrompt 
-                    ? `${payload.userPrompt}\n\n${contextPrompt}`
-                    : contextPrompt
-            };
-        }
+        return {
+            ...payload,
+            recognition_values: enrichedValues
+        };
     } catch (error) {
         console.error("Failed to enrich payload with recognition value descriptions:", error);
     }
 
-    return payload;
+    return defaultVal;
 };
 
 const generateMessage = async (
