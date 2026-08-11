@@ -51,6 +51,11 @@ router.patch(
   UserControllers.updateUser
 );
 router.delete(
+  "/delete-own-account",
+  checkAuth(...Object.values(Role)),
+  UserControllers.deleteOwnAccount
+);
+router.delete(
   "/delete-own-profile",
   checkAuth(...Object.values(Role)),
   UserControllers.deleteOwnAccount

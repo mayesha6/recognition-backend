@@ -572,6 +572,10 @@ const deleteOwnAccount = async (userId: string) => {
   const user = await User.findById(userId);
   if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
 
+  if (user.role === Role.ORGANIZATION_ADMIN) {
+    await User.deleteMany({ organizationId: user._id });
+  }
+
   await User.findByIdAndDelete(userId);
 
   return { message: "Your account has been deleted successfully" };
@@ -696,6 +700,10 @@ const deleteUserById = async (
         throw new AppError(403, "Cannot delete users from another department");
       }
     }
+  }
+
+  if (user.role === Role.ORGANIZATION_ADMIN) {
+    await User.deleteMany({ organizationId: user._id });
   }
 
   await User.findByIdAndDelete(id);
