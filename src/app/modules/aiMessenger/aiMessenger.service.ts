@@ -37,7 +37,7 @@ interface IAiServiceInput {
     category: string;
     department: string;
     recipient_name: string;
-    recognition_values: Array<{ name: string; description: string }>;
+    recognition_values: Array<{ value: string; description: string }>;
     tone: string;
     userPrompt?: string;
 }
@@ -45,7 +45,7 @@ interface IAiServiceInput {
 const enrichPayload = async (payload: IRegenerateInput): Promise<IAiServiceInput> => {
     const defaultVal: IAiServiceInput = {
         ...payload,
-        recognition_values: (payload.recognition_values || []).map(val => ({ name: val, description: "" }))
+        recognition_values: (payload.recognition_values || []).map(val => ({ value: val, description: "" }))
     };
 
     if (!payload.recognition_values || payload.recognition_values.length === 0) {
@@ -60,7 +60,7 @@ const enrichPayload = async (payload: IRegenerateInput): Promise<IAiServiceInput
         const enrichedValues = payload.recognition_values.map((val: string) => {
             const match = recValues.find(rv => rv.name === val);
             return {
-                name: val,
+                value: val,
                 description: match?.description || ""
             };
         });
