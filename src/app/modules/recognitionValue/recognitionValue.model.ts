@@ -7,6 +7,10 @@ const recognitionValueSchema = new Schema<IRecognitionValue>(
       type: String,
       required: true,
     },
+    description: {
+      type: String,
+      default: "",
+    },
     organizationId: {
       type: Types.ObjectId,
       ref: "User",

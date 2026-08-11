@@ -10,6 +10,7 @@ import AppError from "../../errorHelpers/AppError";
 import { redisClient } from "../../config/redis.config";
 import { RecognitionStatus } from "../recognition/recognition.interface";
 import { Types } from "mongoose";
+import { RecognitionValue } from "../recognitionValue/recognitionValue.model";
 
 const CACHE_TTL = 600; // 10 minutes
 
@@ -32,20 +33,63 @@ const handleAiError = (error: any) => {
     return new AppError(httpStatus.BAD_GATEWAY, errMessage);
 };
 
+interface IAiServiceInput {
+    category: string;
+    department: string;
+    recipient_name: string;
+    recognition_values: Array<{ name: string; description: string }>;
+    tone: string;
+    userPrompt?: string;
+}
+
+const enrichPayload = async (payload: IRegenerateInput): Promise<IAiServiceInput> => {
+    const defaultVal: IAiServiceInput = {
+        ...payload,
+        recognition_values: (payload.recognition_values || []).map(val => ({ name: val, description: "" }))
+    };
+
+    if (!payload.recognition_values || payload.recognition_values.length === 0) {
+        return defaultVal;
+    }
+
+    try {
+        const recValues = await RecognitionValue.find({
+            name: { $in: payload.recognition_values }
+        });
+
+        const enrichedValues = payload.recognition_values.map((val: string) => {
+            const match = recValues.find(rv => rv.name === val);
+            return {
+                name: val,
+                description: match?.description || ""
+            };
+        });
+
+        return {
+            ...payload,
+            recognition_values: enrichedValues
+        };
+    } catch (error) {
+        console.error("Failed to enrich payload with recognition value descriptions:", error);
+    }
+
+    return defaultVal;
+};
+
 const generateMessage = async (
     userId: string,
     payload: IRegenerateInput
 ): Promise<IRegenerateResponse & { messageId: string }> => {
     // const cacheKey = `ai_generate:${hashPayload(payload)}`;
 
-   
+    const enrichedPayload = await enrichPayload(payload);
 
     let data: IRegenerateResponse;
 
     try {
         const response = await aiAxios.post<IRegenerateResponse>(
             "/api/messenger/generate",
-            payload
+            enrichedPayload
         );
         data = response.data;
     } catch (error: any) {
@@ -61,7 +105,7 @@ const generateMessage = async (
 
     const result = {
         ...data,
-        messageId: savedMessage._id.toString()
+        messageId: savedMessage ? savedMessage._id.toString() : ""
     };
 
    
@@ -80,12 +124,14 @@ const regenerateMessage = async (
     //     return parsed;
     // }
 
+    const enrichedPayload = await enrichPayload(payload);
+
     let data: IRegenerateResponse;
 
     try {
         const response = await aiAxios.post<IRegenerateResponse>(
             "/api/messenger/regenerate",
-            payload
+            enrichedPayload
         );
         data = response.data;
     } catch (error: any) {
@@ -101,7 +147,7 @@ const regenerateMessage = async (
 
     const result = {
         ...data,
-        messageId: savedMessage._id.toString()
+        messageId: savedMessage ? savedMessage._id.toString() : ""
     };
 
     // await redisClient.set(cacheKey, JSON.stringify(result), { EX: CACHE_TTL });
