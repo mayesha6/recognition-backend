@@ -137,6 +137,7 @@ const sendRecognition = async (
       [{
         senderEmail,
         receiverEmail,
+        recipient_name: recipient_name || (receiver ? receiver.name : undefined),
         department: receiverDepartment,
         category: aiMessage.category,
         tone: aiMessage.tone,
@@ -183,8 +184,12 @@ const sendRecognition = async (
     // Create recipient notification
     const sender = await User.findOne({ email: senderEmail });
     const receiver = await User.findOne({ email: receiverEmail });
+    const senderName = sender ? sender.name : "A Colleague";
+    const senderFirstName = senderName.split(" ")[0];
+    const receiverFullName = receiver ? receiver.name : (recipient_name || "User");
+    const receiverFirstName = receiverFullName.split(" ")[0];
+
     if (receiver) {
-      const senderName = sender ? sender.name : "A teammate";
       await Notification.create({
         recipient: receiver._id,
         sender: sender ? sender._id : null,
@@ -201,8 +206,8 @@ const sendRecognition = async (
       subject: "You received a recognition!",
       templateName: "recognition",
       templateData: {
-        senderName: senderToken.name || "A Colleague",
-        receiverName: recipient_name || "User",
+        senderName: senderFirstName,
+        receiverName: receiverFirstName,
         message: finalMessage,
         additionalMessage: additionalMessage || "",
         points,

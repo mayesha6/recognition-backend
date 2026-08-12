@@ -10,6 +10,7 @@ const sendRecognitionValidation = z.object({
     message: "Message is required"
   }).optional(),
   messageId: z.string().optional(),
+  recipient_name: z.string().optional(),
   additionalMessage: z.string({
     message: "Additional message is required"
   }).optional(),
