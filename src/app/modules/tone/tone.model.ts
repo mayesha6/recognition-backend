@@ -7,6 +7,10 @@ const toneSchema = new Schema<ITone>(
       type: String,
       required: true,
     },
+    description: {
+      type: String,
+      default: "",
+    },
     organizationId: {
       type: Types.ObjectId,
       ref: "User",
