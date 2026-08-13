@@ -11,6 +11,8 @@ import { redisClient } from "../../config/redis.config";
 import { RecognitionStatus } from "../recognition/recognition.interface";
 import { Types } from "mongoose";
 import { RecognitionValue } from "../recognitionValue/recognitionValue.model";
+import { Category } from "../category/category.model";
+import { Tone } from "../tone/tone.model";
 
 const CACHE_TTL = 600; // 10 minutes
 
@@ -34,47 +36,85 @@ const handleAiError = (error: any) => {
 };
 
 interface IAiServiceInput {
-    category: string;
+    category: { name: string; description?: string };
     department: string;
     recipient_name: string;
     recognition_values: Array<{ value: string; description?: string }>;
-    tone: string;
+    tone: { name: string; description?: string };
     userPrompt?: string;
 }
 
 const enrichPayload = async (payload: IRegenerateInput): Promise<IAiServiceInput> => {
-    const defaultVal: IAiServiceInput = {
-        ...payload,
-        recognition_values: (payload.recognition_values || []).map(val => ({ value: val }))
-    };
-
-    if (!payload.recognition_values || payload.recognition_values.length === 0) {
-        return defaultVal;
-    }
+    let categoryDescription = "";
+    let toneDescription = "";
+    let enrichedValues: Array<{ value: string; description?: string }> = 
+        (payload.recognition_values || []).map(val => ({ value: val }));
 
     try {
-        const recValues = await RecognitionValue.find({
-            name: { $in: payload.recognition_values }
-        });
-
-        const enrichedValues = payload.recognition_values.map((val: string) => {
-            const match = recValues.find(rv => rv.name === val);
-            const obj: { value: string; description?: string } = { value: val };
-            if (match?.description && match.description.trim()) {
-                obj.description = match.description.trim();
+        // Fetch category description from DB
+        if (payload.category) {
+            const catDoc = await Category.findOne({
+                name: { $regex: new RegExp(`^${payload.category.trim()}$`, "i") }
+            });
+            if (catDoc?.description) {
+                categoryDescription = catDoc.description.trim();
             }
-            return obj;
-        });
+        }
+
+        // Fetch tone description from DB
+        if (payload.tone) {
+            const toneDoc = await Tone.findOne({
+                name: { $regex: new RegExp(`^${payload.tone.trim()}$`, "i") }
+            });
+            if (toneDoc?.description) {
+                toneDescription = toneDoc.description.trim();
+            }
+        }
+
+        // Fetch recognition values descriptions from DB
+        if (payload.recognition_values && payload.recognition_values.length > 0) {
+            const recValues = await RecognitionValue.find({
+                name: { $in: payload.recognition_values }
+            });
+
+            enrichedValues = payload.recognition_values.map((val: string) => {
+                const match = recValues.find(rv => rv.name === val);
+                const obj: { value: string; description?: string } = { value: val };
+                if (match?.description && match.description.trim()) {
+                    obj.description = match.description.trim();
+                }
+                return obj;
+            });
+        }
 
         return {
             ...payload,
+            category: {
+                name: payload.category,
+                description: categoryDescription || undefined
+            },
+            tone: {
+                name: payload.tone,
+                description: toneDescription || undefined
+            },
             recognition_values: enrichedValues
         };
     } catch (error) {
-        console.error("Failed to enrich payload with recognition value descriptions:", error);
+        console.error("Failed to enrich payload with descriptions:", error);
     }
 
-    return defaultVal;
+    return {
+        ...payload,
+        category: {
+            name: payload.category,
+            description: undefined
+        },
+        tone: {
+            name: payload.tone,
+            description: undefined
+        },
+        recognition_values: enrichedValues
+    };
 };
 
 const generateMessage = async (
